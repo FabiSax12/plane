@@ -10,6 +10,14 @@ node_modules
 
 # Testing
 /coverage
+**/coverage/
+/test-results/
+**/test-results/
+
+# Playwright
+/playwright-report/
+/playwright/.cache/
+**/.playwright/
 
 # Next.js
 /.next/
