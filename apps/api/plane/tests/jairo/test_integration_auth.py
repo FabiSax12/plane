@@ -121,7 +121,7 @@ class TestPI04SignInWrongPassword:
 
 # ---------------------------------------------------------------------------
 # PI-05: Throttle bloquea tras 30 requests/minuto (429)
-# NOTA: Se espera que este test FALLE porque SignInAuthEndpoint es una
+# HALLAZGO: este test FALLA porque SignInAuthEndpoint es una
 #       django.views.View y NO aplica AuthenticationThrottle (DRF).
 #       Esto expone una brecha de seguridad en el repositorio.
 # ---------------------------------------------------------------------------

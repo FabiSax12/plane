@@ -1,0 +1,35 @@
+Cómo ejecutar las pruebas de Jairo
+
+Prerrequisitos
+
+- PostgreSQL local corriendo (servicio postgresql-x64-17)
+- Base de datos plane_test creada
+- Python 3.13 con dependencias instaladas (pip install -r apps/api/requirements/test.txt)
+
+Pruebas Backend (PU-01 a PU-06, PI-01 a PI-06)
+Desde la raíz del repositorio:
+$env:DJANGO_SETTINGS_MODULE="plane.settings.test_local"
+cd apps\api
+pytest plane/tests/jairo/ -v
+
+Si quieres ejecutar solo un archivo:
+pytest plane/tests/jairo/test_unit_auth.py -v           # PU-01 a PU-04
+pytest plane/tests/jairo/test_unit_workspace.py -v       # PU-05, PU-06
+pytest plane/tests/jairo/test_integration_auth.py -v     # PI-01 a PI-06, PI-05 FALLA
+
+La contraseña de PostgreSQL debe estar configurada en apps/api/plane/settings/test_local.py:11 como postgresql://postgres:CONTRASEÑA@localhost:5432/plane_test.
+
+Pruebas Frontend Playwright (PS-01 a PS-04)
+cd apps\web
+npx playwright test --config=playwright.config.ts
+Requiere Node.js con dependencias instaladas (pnpm install en apps/web). Las credenciales están en apps/web/.env.e2e y apuntan a https://makeplane.r-odio.com.
+
+Las mismas pruebas frontend pero con navegador:
+cd apps\web
+npx playwright test --config=playwright.config.ts --headed
+
+Alternativa con Docker para las de backend (en vez de PostgreSQL)
+docker compose -f docker-compose-test.yml run --rm --build api-tests pytest plane/tests/jairo/ -v
+
+Nota
+PI-05 fallará porque el endpoint SignInAuthEndpoint no implementa throttle — es una falla esperada y documentada.
