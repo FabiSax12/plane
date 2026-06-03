@@ -13,9 +13,9 @@ cd apps\api
 pytest plane/tests/jairo/ -v
 
 Si quieres ejecutar solo un archivo:
-pytest plane/tests/jairo/test_unit_auth.py -v           # PU-01 a PU-04
-pytest plane/tests/jairo/test_unit_workspace.py -v       # PU-05, PU-06
-pytest plane/tests/jairo/test_integration_auth.py -v     # PI-01 a PI-06, PI-05 FALLA
+pytest plane/tests/jairo/test_unit_auth.py -v # PU-01 a PU-04
+pytest plane/tests/jairo/test_unit_workspace.py -v # PU-05, PU-06
+pytest plane/tests/jairo/test_integration_auth.py -v # PI-01 a PI-06, PI-05 FALLA
 
 La contraseña de PostgreSQL debe estar configurada en apps/api/plane/settings/test_local.py:11 como postgresql://postgres:CONTRASEÑA@localhost:5432/plane_test.
 
