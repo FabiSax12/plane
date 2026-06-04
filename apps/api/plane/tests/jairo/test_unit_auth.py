@@ -8,7 +8,7 @@ class TestPU01ValidEmail:
     """PU-01: Aceptar correo valido con validate_email de Django"""
 
     def test_valid_email_does_not_raise(self):
-        validate_email("usuario.prueba@itcr.ac.cr")
+        assert validate_email("usuario.prueba@itcr.ac.cr") is None
 
 
 class TestPU02InvalidEmail:
@@ -24,7 +24,7 @@ class TestPU03StrongPassword:
 
     def test_strong_password_score(self):
         result = zxcvbn("P4ssw0rd!Segura")
-        assert result["score"] >= 3, f"Expected score >= 3, got {result['score']}"
+        assert result["score"] >= 3
 
 
 class TestPU04WeakPassword:
@@ -32,4 +32,4 @@ class TestPU04WeakPassword:
 
     def test_weak_password_score(self):
         result = zxcvbn("12345")
-        assert result["score"] < 3, f"Expected score < 3, got {result['score']}"
+        assert result["score"] < 3
