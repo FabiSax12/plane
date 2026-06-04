@@ -6,7 +6,12 @@ export default defineConfig({
     environment: "jsdom",
     globals: true,
     setupFiles: ["./vitest.setup.ts"],
-    include: ["tests/**/*.test.ts", "tests/**/*.test.tsx", "tests/**/*.spec.ts", "tests/**/*.spec.tsx"],
+    include: [
+      "tests/unit/**/*.test.ts",
+      "tests/unit/**/*.test.tsx",
+      "tests/unit/**/*.spec.ts",
+      "tests/unit/**/*.spec.tsx",
+    ],
     coverage: {
       provider: "v8",
       reporter: ["text", "json", "html"],
