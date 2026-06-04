@@ -17,6 +17,10 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./core"),
+      "@plane/constants": path.resolve(__dirname, "../../packages/constants/src/index.ts"),
+      "@plane/types": path.resolve(__dirname, "../../packages/types/src/index.ts"),
+      "@plane/utils": path.resolve(__dirname, "../../packages/utils/src/index.ts"),
+      "@plane/services": path.resolve(__dirname, "../../packages/services/src/index.ts"),
     },
   },
 });
