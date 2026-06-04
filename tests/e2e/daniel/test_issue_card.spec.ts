@@ -46,23 +46,26 @@ test.describe("PS-13: Priority and due date visible on issue card @daniel @qa", 
       .first()
       .click();
 
-    // Seleccionar "High" del dropdown
-    await page.getByRole("option", { name: /^high$/i }).click();
+    // Seleccionar "High" del dropdown (role="button" en la versión actual de Plane)
+    await page.getByRole("button", { name: /^high$/i }).click();
 
     // Verificar que el badge de prioridad muestra "high"
     await expect(page.locator('button, [class*="priority"]').filter({ hasText: /high/i }).first()).toBeVisible();
   });
 
   test("PS-13-b: al asignar due date, la fecha queda visible en el detalle del issue", async ({ page }) => {
-    // Clic en la fila de due date del sidebar y abrir su dropdown
-    const dueDateRow = page
+    // Scopear al panel de detalle para evitar que el locator "Due date" capture
+    // un div demasiado amplio y click() termine en el primer botón de la página
+    const detailPanel = page.locator('[data-testid="issue-detail-root"], aside, [role="dialog"]').first();
+    const dueDateRow = detailPanel
       .locator("div")
       .filter({ has: page.getByText(/^Due date$/i) })
       .first();
     await dueDateRow.locator("button").first().click();
 
-    // Seleccionar el día 28 del mes actual en el calendar picker
-    await page.getByRole("button", { name: "28" }).first().click();
+    // Seleccionar el día 28 usando texto visible en lugar de accessible name,
+    // ya que Plane puede renderizar aria-label con contexto completo ("June 28, 2026")
+    await page.locator("button").filter({ hasText: /^\s*28\s*$/ }).first().click({ timeout: 15_000 });
 
     // Verificar que un elemento con texto de fecha aparece en la sección de due date
     await expect(

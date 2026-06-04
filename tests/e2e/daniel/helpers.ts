@@ -152,3 +152,36 @@ export async function clickLayoutButton(page: Page, index: number): Promise<void
   }, index);
   await page.waitForTimeout(800);
 }
+
+/**
+ * Limpia todos los filtros activos.
+ * Estrategia primaria: botón "Clear all" (aparece en la barra cuando hay filtros).
+ * Cuando lo encuentra, también re-abre el dropdown de propiedades para que el test
+ * pueda aplicar un nuevo filtro sin necesidad de llamar a clickFilterToggle de nuevo.
+ * Estrategia fallback: buscar botones X individuales en los chips.
+ */
+export async function clearActiveFilters(page: Page): Promise<void> {
+  // Estrategia 1: botón "Clear all" visible en la barra de filtros activos
+  const clearAllBtn = page.getByRole("button", { name: /^clear all$/i });
+  const hasClearAll = await clearAllBtn.isVisible({ timeout: 1_000 }).catch(() => false);
+  if (hasClearAll) {
+    await clearAllBtn.click();
+    await page.waitForTimeout(500);
+    // El dropdown anterior estaba abierto sin "Priority" (ya estaba en uso).
+    // Cerrar y re-abrir para obtener un dropdown fresco que incluya Priority.
+    await page.keyboard.press("Escape");
+    await clickFilterToggle(page);
+    return;
+  }
+  // Estrategia 2: botones X individuales en chips de filtro
+  const clearButtons = await page.locator('[class*="remove"], [aria-label*="remove"], button:has-text("×")').all();
+  for (const btn of clearButtons) {
+    const isVisible = await btn.isVisible().catch(() => false);
+    if (isVisible) {
+      await btn.click();
+      await page.waitForTimeout(300);
+    }
+  }
+  // Presionar Escape para cerrar cualquier dropdown abierto
+  await page.keyboard.press("Escape");
+}

@@ -18,7 +18,7 @@
  * Seleccionar "High" establece el valor; el chip aparece en la fila de filtros.
  */
 import { test, expect } from "@playwright/test";
-import { navigateToFirstProjectIssues, clickFilterToggle } from "./helpers";
+import { navigateToFirstProjectIssues, clickFilterToggle, clearActiveFilters } from "./helpers";
 
 test.describe("PS-14: Filter work items by priority @daniel @qa", () => {
   /**
@@ -33,13 +33,17 @@ test.describe("PS-14: Filter work items by priority @daniel @qa", () => {
   });
 
   test("PS-14-a: al aplicar filtro Priority=High aparece el chip 'high' en filtros activos", async ({ page }) => {
+    // Limpiar filtros previos que puedan haber quedado persistidos
+    await clearActiveFilters(page);
+    await page.waitForTimeout(300);
+
     // El dropdown de propiedades está abierto; seleccionar Priority
-    await page.getByRole("option", { name: /^priority$/i }).waitFor({ timeout: 5_000 });
-    await page.getByRole("option", { name: /^priority$/i }).click();
+    await page.getByRole("button", { name: /^priority$/i }).waitFor({ timeout: 5_000 });
+    await page.getByRole("button", { name: /^priority$/i }).click();
 
     // MultiSelectFilterValueInput se abre automáticamente (defaultOpen=true cuando value=undefined)
-    await page.getByRole("option", { name: /^high$/i }).waitFor({ timeout: 5_000 });
-    await page.getByRole("option", { name: /^high$/i }).click();
+    await page.getByRole("button", { name: /^high$/i }).waitFor({ timeout: 5_000 });
+    await page.getByRole("button", { name: /^high$/i }).click();
     await page.keyboard.press("Escape");
 
     // FilterItemContainer wraps property label "Priority" + operator + value "High" in one div.
@@ -55,15 +59,19 @@ test.describe("PS-14: Filter work items by priority @daniel @qa", () => {
 
   test("PS-14-b: el panel de filtros se muestra tras abrir el toggle", async ({ page }) => {
     // El dropdown de propiedades debe mostrar "Priority" como opción accesible
-    await expect(page.getByRole("option", { name: /^priority$/i })).toBeVisible({ timeout: 5_000 });
+    await expect(page.getByRole("button", { name: /^priority$/i })).toBeVisible({ timeout: 5_000 });
   });
 
   test("PS-14-c: al aplicar filtro Priority=Urgent el chip urgente es visible", async ({ page }) => {
-    await page.getByRole("option", { name: /^priority$/i }).waitFor({ timeout: 5_000 });
-    await page.getByRole("option", { name: /^priority$/i }).click();
+    // Limpiar filtros previos que puedan haber quedado persistidos
+    await clearActiveFilters(page);
+    await page.waitForTimeout(300);
 
-    await page.getByRole("option", { name: /^urgent$/i }).waitFor({ timeout: 5_000 });
-    await page.getByRole("option", { name: /^urgent$/i }).click();
+    await page.getByRole("button", { name: /^priority$/i }).waitFor({ timeout: 5_000 });
+    await page.getByRole("button", { name: /^priority$/i }).click();
+
+    await page.getByRole("button", { name: /^urgent$/i }).waitFor({ timeout: 5_000 });
+    await page.getByRole("button", { name: /^urgent$/i }).click();
     await page.keyboard.press("Escape");
 
     await expect(

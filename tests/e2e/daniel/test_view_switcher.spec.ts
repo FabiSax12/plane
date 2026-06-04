@@ -19,20 +19,31 @@ import { navigateToFirstProjectIssues, clickFilterToggle, clickLayoutButton } fr
  *
  * Comportamiento real de Plane:
  * clickFilterToggle abre el dropdown de propiedades directamente (AddFilterButton con label=null).
- * No hay botón "Add filter" con texto — se selecciona Priority directamente como role="option".
+ * Las opciones del dropdown son role="button" (no "option") en la versión actual.
  * Al seleccionar Priority, MultiSelectFilterValueInput abre su dropdown automáticamente
  * (defaultOpen=true cuando value=undefined), y se elige High.
+ *
+ * IMPORTANTE: Si ya hay un filtro Priority activo (de un test anterior), "Priority" no aparece
+ * en el dropdown. Se limpia primero con "Clear all" antes de abrir el dropdown.
  */
 async function applyPriorityHighFilter(page: import("@playwright/test").Page): Promise<void> {
+  // Limpiar filtros previos si el botón "Clear all" está visible
+  const clearAllBtn = page.getByRole("button", { name: /^clear all$/i });
+  const hasClearAll = await clearAllBtn.isVisible({ timeout: 1_000 }).catch(() => false);
+  if (hasClearAll) {
+    await clearAllBtn.click();
+    await page.waitForTimeout(500);
+  }
+
   await clickFilterToggle(page);
 
-  // Dropdown de propiedades se abre directamente; seleccionar Priority
-  await page.getByRole("option", { name: /^priority$/i }).waitFor({ timeout: 5_000 });
-  await page.getByRole("option", { name: /^priority$/i }).click();
+  // Dropdown de propiedades se abre directamente; seleccionar Priority (role="button")
+  await page.getByRole("button", { name: /^priority$/i }).waitFor({ timeout: 5_000 });
+  await page.getByRole("button", { name: /^priority$/i }).click();
 
-  // Value dropdown se abre automáticamente; seleccionar High
-  await page.getByRole("option", { name: /^high$/i }).waitFor({ timeout: 5_000 });
-  await page.getByRole("option", { name: /^high$/i }).click();
+  // Value dropdown se abre automáticamente; seleccionar High (role="button")
+  await page.getByRole("button", { name: /^high$/i }).waitFor({ timeout: 5_000 });
+  await page.getByRole("button", { name: /^high$/i }).click();
 
   await page.keyboard.press("Escape");
 }
