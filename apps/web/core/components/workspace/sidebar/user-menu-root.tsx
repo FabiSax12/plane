@@ -133,7 +133,7 @@ export const UserMenuRoot = observer(function UserMenuRoot() {
           {t("preferences")}
         </CustomMenu.MenuItem>
       </div>
-      <CustomMenu.MenuItem onClick={handleSignOut} className="flex items-center gap-2">
+      <CustomMenu.MenuItem onClick={handleSignOut} className="flex items-center gap-2" data-testid="sign-out-btn">
         <LogOut className="size-3.5 shrink-0" />
         {t("sign_out")}
       </CustomMenu.MenuItem>
