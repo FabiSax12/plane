@@ -11,7 +11,7 @@
  *
  * Ejecución:
  *   cd apps/web
- *   pnpm playwright test tests/e2e/test_project_system.spec.ts
+ *   pnpm playwright test tests/e2e/Rafael/test_project_system.spec.ts
  */
 
 import { test, expect } from "@playwright/test";

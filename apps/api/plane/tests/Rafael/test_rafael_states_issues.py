@@ -3,6 +3,8 @@
 # See the LICENSE file in the LICENSE file for details.
 
 # Pruebas unitarias asignadas a Rafael Odio: PU-13, PU-14, PU-15, PU-16, PU-17, PU-18
+# docker compose -f docker-compose-test.yml run api-tests python -m pytest plane/tests/Rafael/test_rafael_states_issues.py -v
+# docker compose -f docker-compose-test.yml run api-tests python -m pytest -m rafael -v
 
 import pytest
 
@@ -19,6 +21,7 @@ from plane.app.serializers import LabelSerializer
 # ---------------------------------------------------------------------------
 
 @pytest.mark.unit
+@pytest.mark.rafael
 class TestStateUsageQuery:
     """PU-13 / PU-14: consulta ORM que determina si un estado tiene issues asociados."""
 
@@ -96,6 +99,7 @@ class TestStateUsageQuery:
 # ---------------------------------------------------------------------------
 
 @pytest.mark.unit
+@pytest.mark.rafael
 class TestDefaultStatesConstant:
     """PU-15 / PU-16: estructura y contenido de DEFAULT_STATES."""
 
@@ -132,6 +136,7 @@ class TestDefaultStatesConstant:
 # ---------------------------------------------------------------------------
 
 @pytest.mark.unit
+@pytest.mark.rafael
 class TestLabelSerializerColor:
     """PU-17: LabelSerializer acepta color hex válido."""
 
@@ -183,6 +188,7 @@ class TestLabelSerializerColor:
 # ---------------------------------------------------------------------------
 
 @pytest.mark.unit
+@pytest.mark.rafael
 class TestIssueSequenceId:
     """PU-18: sequence_id se auto-incrementa correctamente por proyecto."""
 

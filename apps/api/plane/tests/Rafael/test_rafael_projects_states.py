@@ -6,6 +6,8 @@
 #
 # Todos los endpoints son de la API externa (/api/v1/) y usan api_key_client.
 # URLs confirmadas en apps/api/plane/api/urls/
+# docker compose -f docker-compose-test.yml run api-tests python -m pytest plane/tests/Rafael/test_rafael_projects_states.py -v
+# docker compose -f docker-compose-test.yml run api-tests python -m pytest -m rafael -v
 
 import pytest
 import uuid
@@ -31,6 +33,7 @@ from plane.db.models.state import StateGroup
 # ---------------------------------------------------------------------------
 
 @pytest.mark.contract
+@pytest.mark.rafael
 class TestPI13CreateProjectWithStates:
     """PI-13: crear proyecto vía API v1 genera 6 estados automáticamente."""
 
@@ -72,6 +75,7 @@ class TestPI13CreateProjectWithStates:
 # ---------------------------------------------------------------------------
 
 @pytest.mark.contract
+@pytest.mark.rafael
 class TestPI14ListProjectMembers:
     """PI-14: GET de miembros retorna la lista completa con id, role y user info."""
 
@@ -125,6 +129,7 @@ class TestPI14ListProjectMembers:
 # ---------------------------------------------------------------------------
 
 @pytest.mark.contract
+@pytest.mark.rafael
 class TestPI15ArchiveProject:
     """PI-15: archivar proyecto setea archived_at y lo excluye del listado."""
 
@@ -176,7 +181,10 @@ class TestPI15ArchiveProject:
         list_url = f"/api/v1/workspaces/{workspace.slug}/projects/"
         list_response = api_key_client.get(list_url)
         assert list_response.status_code == status.HTTP_200_OK
-        project_ids = [p["id"] for p in list_response.json()]
+        # La API devuelve respuesta paginada {"results": [...], "count": N}
+        data = list_response.json()
+        projects = data["results"] if isinstance(data, dict) else data
+        project_ids = [p["id"] for p in projects]
         assert str(project.id) in project_ids, (
             "La API v1 devuelve proyectos archivados en el listado estándar. "
             "Si este assert falla, el endpoint fue actualizado para filtrarlos."
@@ -192,6 +200,7 @@ class TestPI15ArchiveProject:
 # ---------------------------------------------------------------------------
 
 @pytest.mark.contract
+@pytest.mark.rafael
 class TestPI16IssueRelation:
     """PI-16: crear relación blocked_by genera relación inversa blocking."""
 
@@ -259,6 +268,7 @@ class TestPI16IssueRelation:
 # ---------------------------------------------------------------------------
 
 @pytest.mark.contract
+@pytest.mark.rafael
 class TestPI17DeleteStateInUse:
     """PI-17: DELETE state con issues → 400 con mensaje específico del plan."""
 
@@ -301,6 +311,7 @@ class TestPI17DeleteStateInUse:
 # ---------------------------------------------------------------------------
 
 @pytest.mark.contract
+@pytest.mark.rafael
 class TestPI18WorkItemSequenceId:
     """PI-18: crear segundo work item vía API retorna sequence_id == 2."""
 
