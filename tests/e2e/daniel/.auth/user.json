@@ -2,20 +2,20 @@
   "cookies": [
     {
       "name": "csrftoken",
-      "value": "qfrPlTI4fHk49nAQDDAkw5Z7cTrKZtxl",
+      "value": "G54f6V4ZPGjVfIG0RfvtgCr1B3rOkY50",
       "domain": "makeplane.r-odio.com",
       "path": "/",
-      "expires": 1812045628.858301,
+      "expires": 1812047688.311225,
       "httpOnly": true,
       "secure": false,
       "sameSite": "Lax"
     },
     {
       "name": "session-id",
-      "value": "6e2nsdtpn6jwlfheibezrqipgzf44btzcz6s1a1t5xummthghyaxp5i3uy932bk14muhwli67hhfkl5sv29h8sj3la3kwh09eu9r9p8r74wwxajgkkb6dqyxteylfe0c",
+      "value": "lvohfqy9c1iyeilbpc03h7ombadxedljta6v60vt2n8s3sbq87io1se5o34q6g1f434txdf6v1r2iwhrkrwl0fyqq9tftk4apaxagayvbx4bwp5ofx7gzqqjsci83khu",
       "domain": "makeplane.r-odio.com",
       "path": "/",
-      "expires": 1781200828.858469,
+      "expires": 1781202888.312983,
       "httpOnly": true,
       "secure": false,
       "sameSite": "Lax"
