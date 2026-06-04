@@ -1,85 +1,66 @@
 """
 PI-19: PATCH state de work item registra entrada en IssueActivity
 Tecnica: Cobertura de sentencias
-HU-17: Actualizar estado de work item arrastrándolo entre columnas
+HU-17: Actualizar estado de work item arrastrandolo entre columnas
 
-Nota: Celery no corre en modo eager en el entorno de test.
+Celery no corre en modo eager en el entorno de test.
 Se usa unittest.mock para interceptar .delay() y ejecutar el task de forma sincrona.
 """
-import json
 import pytest
 from unittest.mock import patch
-from django.utils import timezone
 
 from plane.bgtasks.issue_activities_task import issue_activity
 from plane.db.models import IssueActivity
 from plane.tests.factories import IssueFactory, StateFactory
 
 
-def run_issue_activity_sync(*args, **kwargs):
+def run_sync(*args, **kwargs):
     """Ejecuta issue_activity de forma sincrona en lugar de enviarlo a Celery."""
     issue_activity(*args, **kwargs)
 
 
+@pytest.mark.qa
+@pytest.mark.daniel
 @pytest.mark.django_db
-class TestIssueStateActivityLog:
+class TestPI19StateChangeActivity:
+    """PI-19: PATCH state genera entrada en IssueActivity con datos correctos."""
 
-    def _patch_url(self, workspace, project, issue):
-        return f"/api/workspaces/{workspace.slug}/projects/{project.id}/issues/{issue.id}/"
+    @pytest.fixture(autouse=True)
+    def setup(self, auth_client, workspace, project, default_state, user):
+        self.new_state = StateFactory(project=project, group="started", name="En Progreso")
+        issue = IssueFactory(project=project, state=default_state)
+        url = f"/api/workspaces/{workspace.slug}/projects/{project.id}/issues/{issue.id}/"
+        with patch("plane.app.views.issue.base.issue_activity.delay", side_effect=run_sync):
+            self.response = auth_client.patch(url, data={"state": str(self.new_state.id)}, format="json")
+        self.activity = IssueActivity.objects.filter(issue=issue, field="state").first()
+        self.user = user
 
-    @patch("plane.app.views.issue.base.issue_activity.delay", side_effect=run_issue_activity_sync)
-    def test_pi19_patch_state_creates_activity_entry(self, mock_delay, auth_client, workspace, project, default_state, user):
-        """PI-19: PATCH state retorna 200 y genera entrada en IssueActivity con field=state."""
+    def test_patch_returns_200(self):
+        assert self.response.status_code == 200
+
+    def test_activity_entry_was_created(self):
+        assert self.activity is not None
+
+    def test_activity_actor_is_correct_user(self):
+        assert self.activity.actor == self.user
+
+    def test_activity_new_identifier_matches_new_state(self):
+        assert str(self.activity.new_identifier) == str(self.new_state.id)
+
+    def test_activity_new_value_is_state_name(self):
+        assert self.activity.new_value == "En Progreso"
+
+
+@pytest.mark.qa
+@pytest.mark.daniel
+@pytest.mark.django_db
+class TestPI19DelayIsCalled:
+    """PI-19: issue_activity.delay es invocado al hacer PATCH state."""
+
+    def test_delay_was_called(self, auth_client, workspace, project, default_state):
         new_state = StateFactory(project=project, group="started")
         issue = IssueFactory(project=project, state=default_state)
-
-        url = self._patch_url(workspace, project, issue)
-        response = auth_client.patch(
-            url,
-            data={"state": str(new_state.id)},
-            format="json",
-        )
-
-        assert response.status_code == 200
-
-        activity = IssueActivity.objects.filter(
-            issue=issue,
-            field="state",
-        ).first()
-
-        assert activity is not None, "No se creo ningun registro de actividad con field=state"
-        assert activity.actor == user
-        assert str(activity.new_identifier) == str(new_state.id)
-
-    @patch("plane.app.views.issue.base.issue_activity.delay", side_effect=run_issue_activity_sync)
-    def test_pi19_activity_records_old_and_new_state(self, mock_delay, auth_client, workspace, project, default_state, user):
-        """PI-19: La actividad registra el nombre del estado anterior y el nuevo."""
-        new_state = StateFactory(project=project, group="started", name="En Progreso")
-        issue = IssueFactory(project=project, state=default_state)
-
-        url = self._patch_url(workspace, project, issue)
-        auth_client.patch(
-            url,
-            data={"state": str(new_state.id)},
-            format="json",
-        )
-
-        activity = IssueActivity.objects.filter(issue=issue, field="state").first()
-
-        assert activity is not None
-        assert activity.new_value == "En Progreso"
-
-    @patch("plane.app.views.issue.base.issue_activity.delay", side_effect=run_issue_activity_sync)
-    def test_pi19_delay_was_called_once(self, mock_delay, auth_client, workspace, project, default_state):
-        """El task issue_activity.delay es invocado al hacer PATCH state."""
-        new_state = StateFactory(project=project, group="started")
-        issue = IssueFactory(project=project, state=default_state)
-
-        url = self._patch_url(workspace, project, issue)
-        auth_client.patch(
-            url,
-            data={"state": str(new_state.id)},
-            format="json",
-        )
-
+        url = f"/api/workspaces/{workspace.slug}/projects/{project.id}/issues/{issue.id}/"
+        with patch("plane.app.views.issue.base.issue_activity.delay", side_effect=run_sync) as mock_delay:
+            auth_client.patch(url, data={"state": str(new_state.id)}, format="json")
         assert mock_delay.called

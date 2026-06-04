@@ -4,118 +4,113 @@ Tecnica: Cobertura de sentencias
 HU-28: Visualizar el burndown chart de un ciclo activo
 
 Nota: La firma real es burndown_plot(queryset, slug, project_id, plot_type, cycle_id, module_id).
-El parametro queryset es un objeto Cycle anotado con total_issues (no un queryset de issues).
+El parametro queryset es un objeto Cycle anotado con total_issues, no un queryset de issues.
 """
 import pytest
-from django.db.models import Count
+from datetime import date, timedelta
+from django.db.models import Count, Q
 from django.utils import timezone
-from datetime import timedelta
 
-from plane.db.models.cycle import Cycle
+from plane.db.models.cycle import Cycle, CycleIssue
 from plane.utils.analytics_plot import burndown_plot
 from plane.tests.factories import CycleFactory, IssueFactory, StateFactory
 
 
+def get_annotated_cycle(cycle):
+    """Replica la anotacion que hace la vista antes de llamar a burndown_plot."""
+    return Cycle.objects.filter(id=cycle.id).annotate(
+        total_issues=Count(
+            "issue_cycle",
+            filter=Q(issue_cycle__deleted_at__isnull=True),
+        )
+    ).first()
+
+
+@pytest.mark.qa
+@pytest.mark.daniel
 @pytest.mark.django_db
-class TestBurndownPlot:
+class TestBurndownPlotReturnShape:
+    """PU-25: burndown_plot retorna un dict con fechas como claves."""
 
-    def _get_annotated_cycle(self, cycle):
-        """Replica la anotacion que hace la vista antes de llamar a burndown_plot."""
-        return Cycle.objects.filter(id=cycle.id).annotate(
-            total_issues=Count("issue_cycle", filter=__import__("django.db.models", fromlist=["Q"]).Q(
-                issue_cycle__deleted_at__isnull=True
-            ))
-        ).first()
-
-    def test_pu25_returns_dict_with_date_keys_for_cycle(self, project, default_state, workspace):
-        """PU-25: burndown_plot retorna un dict con fechas de string como claves."""
+    @pytest.fixture(autouse=True)
+    def setup(self, project, default_state, workspace):
         now = timezone.now()
-        cycle = CycleFactory(
-            project=project,
-            start_date=now,
-            end_date=now + timedelta(days=4),
-        )
-        annotated_cycle = self._get_annotated_cycle(cycle)
-
-        result = burndown_plot(
-            queryset=annotated_cycle,
+        self.cycle = CycleFactory(project=project, start_date=now, end_date=now + timedelta(days=4))
+        annotated = get_annotated_cycle(self.cycle)
+        self.result = burndown_plot(
+            queryset=annotated,
             slug=workspace.slug,
             project_id=project.id,
             plot_type="issues",
-            cycle_id=cycle.id,
+            cycle_id=self.cycle.id,
         )
 
-        assert isinstance(result, dict)
-        assert len(result) == 5  # 5 dias: dia 0 al dia 4
+    def test_result_is_a_dict(self):
+        assert isinstance(self.result, dict)
 
-    def test_chart_keys_are_date_strings(self, project, default_state, workspace):
-        """Las claves del dict son strings con formato de fecha (YYYY-MM-DD)."""
-        from datetime import date
-        now = timezone.now()
-        cycle = CycleFactory(
-            project=project,
-            start_date=now,
-            end_date=now + timedelta(days=2),
-        )
-        annotated_cycle = self._get_annotated_cycle(cycle)
+    def test_result_has_correct_number_of_days(self):
+        assert len(self.result) == 5
 
-        result = burndown_plot(
-            queryset=annotated_cycle,
-            slug=workspace.slug,
-            project_id=project.id,
-            plot_type="issues",
-            cycle_id=cycle.id,
-        )
+    def test_all_keys_are_valid_iso_date_strings(self):
+        assert all(date.fromisoformat(k) is not None for k in self.result.keys())
 
-        for key in result.keys():
-            parsed = date.fromisoformat(key)
-            assert parsed >= now.date()
+
+@pytest.mark.qa
+@pytest.mark.daniel
+@pytest.mark.django_db
+class TestBurndownPlotEmptyCycle:
+    """Ciclo sin fechas retorna dict vacio."""
 
     def test_returns_empty_dict_when_cycle_has_no_dates(self, project, default_state, workspace):
-        """Ciclo sin start_date ni end_date retorna dict vacio."""
         cycle = CycleFactory(project=project, start_date=None, end_date=None)
-        annotated_cycle = self._get_annotated_cycle(cycle)
-
+        annotated = get_annotated_cycle(cycle)
         result = burndown_plot(
-            queryset=annotated_cycle,
+            queryset=annotated,
             slug=workspace.slug,
             project_id=project.id,
             plot_type="issues",
             cycle_id=cycle.id,
         )
-
         assert result == {}
 
-    def test_pending_count_decreases_as_issues_complete(self, project, workspace):
-        """Issues completados en el pasado reducen el conteo pendiente en esa fecha."""
-        from plane.db.models.cycle import CycleIssue
-        state_completed = StateFactory(project=project, group="completed")
-        yesterday = timezone.now() - timedelta(days=1)
-        two_days_ago = timezone.now() - timedelta(days=2)
 
-        cycle = CycleFactory(
+@pytest.mark.qa
+@pytest.mark.daniel
+@pytest.mark.django_db
+class TestBurndownPlotWithCompletedIssues:
+    """Ciclo con issues completados en el pasado genera valores no vacios."""
+
+    @pytest.fixture(autouse=True)
+    def setup(self, project, workspace, user):
+        state_completed = StateFactory(project=project, group="completed")
+        two_days_ago = timezone.now() - timedelta(days=2)
+        yesterday = timezone.now() - timedelta(days=1)
+        self.cycle = CycleFactory(
             project=project,
             start_date=two_days_ago,
             end_date=timezone.now(),
         )
-
-        issue = IssueFactory(
+        issue = IssueFactory(project=project, state=state_completed, completed_at=yesterday)
+        CycleIssue.objects.create(
+            cycle=self.cycle,
+            issue=issue,
             project=project,
-            state=state_completed,
-            completed_at=yesterday,
+            workspace_id=self.cycle.workspace_id,
+            created_by=user,
+            updated_by=user,
         )
-        CycleIssue.objects.create(cycle=cycle, issue=issue)
-
-        annotated_cycle = self._get_annotated_cycle(cycle)
-
-        result = burndown_plot(
-            queryset=annotated_cycle,
+        annotated = get_annotated_cycle(self.cycle)
+        self.result = burndown_plot(
+            queryset=annotated,
             slug=workspace.slug,
             project_id=project.id,
             plot_type="issues",
-            cycle_id=cycle.id,
+            cycle_id=self.cycle.id,
         )
 
-        assert isinstance(result, dict)
-        values = [v for v in result.values() if v is not None]
-        assert len(values) > 0
+    def test_result_is_a_dict(self):
+        assert isinstance(self.result, dict)
+
+    def test_result_has_non_null_values(self):
+        non_null_values = [v for v in self.result.values() if v is not None]
+        assert len(non_null_values) > 0

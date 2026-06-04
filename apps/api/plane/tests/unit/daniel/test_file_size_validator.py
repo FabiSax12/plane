@@ -12,38 +12,53 @@ from plane.db.models.asset import file_size
 FILE_SIZE_LIMIT = 5_242_880  # 5 MB en bytes
 
 
-class TestFileSizeValidator:
+@pytest.mark.qa
+@pytest.mark.daniel
+class TestFileSizeValidatorRejectsLargeFile:
+    """PU-23 caso invalido: archivo mayor al limite lanza ValidationError."""
 
-    def test_rejects_file_above_limit(self):
-        """PU-23 (caso invalido): archivo de 15 MB lanza ValidationError."""
+    @pytest.fixture(autouse=True)
+    def setup(self):
         large_file = SimpleUploadedFile("big.bin", b"\x00" * (FILE_SIZE_LIMIT + 1))
-
-        with pytest.raises(ValidationError) as exc_info:
+        try:
             file_size(large_file)
+            self.raised = False
+            self.exception = None
+        except ValidationError as exc:
+            self.raised = True
+            self.exception = exc
 
-        assert "5 MB" in str(exc_info.value)
+    def test_raises_validation_error(self):
+        assert self.raised is True
+
+    def test_error_message_mentions_5mb(self):
+        assert "5 MB" in str(self.exception)
+
+
+@pytest.mark.qa
+@pytest.mark.daniel
+class TestFileSizeValidatorAcceptsValidFiles:
+    """PU-23 casos validos: archivos en o por debajo del limite no lanzan excepcion."""
 
     def test_accepts_file_at_exact_limit(self):
-        """Valor limite exacto (5 MB justo) no lanza excepcion."""
         exact_file = SimpleUploadedFile("exact.bin", b"\x00" * FILE_SIZE_LIMIT)
-
         try:
             file_size(exact_file)
+            raised = False
         except ValidationError:
-            pytest.fail("file_size lanzo ValidationError para un archivo exactamente en el limite")
+            raised = True
+        assert raised is False
 
     def test_accepts_file_below_limit(self):
-        """Archivo por debajo del limite (1 MB) no lanza excepcion."""
         small_file = SimpleUploadedFile("small.bin", b"\x00" * 1_048_576)
-
         try:
             file_size(small_file)
+            raised = False
         except ValidationError:
-            pytest.fail("file_size lanzo ValidationError para un archivo de 1 MB")
+            raised = True
+        assert raised is False
 
     def test_rejects_file_well_above_limit(self):
-        """Archivo de 15 MB (3x el limite) siempre lanza ValidationError."""
         huge_file = SimpleUploadedFile("huge.bin", b"\x00" * (FILE_SIZE_LIMIT * 3))
-
         with pytest.raises(ValidationError):
             file_size(huge_file)

@@ -14,57 +14,65 @@ UUID_JAIRO = "uuid-jairo-000-0000-000000000002"
 
 
 def build_payload(html: str) -> str:
-    """Wrap HTML in the JSON string format expected by extract_mentions."""
+    """Envuelve HTML en el JSON string que espera extract_mentions."""
     return json.dumps({"description_html": html})
 
 
-class TestExtractMentions:
+@pytest.mark.qa
+@pytest.mark.daniel
+class TestExtractMentionsTwoTags:
+    """PU-20: Caso base con dos mention-components distintos."""
 
-    def test_returns_both_uuids_from_two_mention_tags(self):
-        """PU-20: extract_mentions retorna los UUIDs de los dos mention-components presentes."""
+    @pytest.fixture(autouse=True)
+    def setup(self):
         html = (
-            f'<p>Hola '
+            f'<p>'
             f'<mention-component entity_name="user_mention" entity_identifier="{UUID_RAFA}"></mention-component>'
             f' y '
             f'<mention-component entity_name="user_mention" entity_identifier="{UUID_JAIRO}"></mention-component>'
             f'</p>'
         )
-        result = extract_mentions(build_payload(html))
+        self.result = extract_mentions(build_payload(html))
 
-        assert isinstance(result, list)
-        assert UUID_RAFA in result
-        assert UUID_JAIRO in result
-        assert len(result) == 2
+    def test_result_is_a_list(self):
+        assert isinstance(self.result, list)
 
-    def test_ignores_tags_without_user_mention_entity(self):
-        """Solo extrae tags con entity_name=user_mention, ignora otros."""
+    def test_result_contains_first_uuid(self):
+        assert UUID_RAFA in self.result
+
+    def test_result_contains_second_uuid(self):
+        assert UUID_JAIRO in self.result
+
+    def test_result_has_exactly_two_elements(self):
+        assert len(self.result) == 2
+
+
+@pytest.mark.qa
+@pytest.mark.daniel
+class TestExtractMentionsEdgeCases:
+    """Casos borde: entidad incorrecta, duplicados, sin menciones, input invalido."""
+
+    def test_ignores_non_user_mention_entity(self):
         html = (
             f'<mention-component entity_name="user_mention" entity_identifier="{UUID_RAFA}"></mention-component>'
             f'<mention-component entity_name="issue_mention" entity_identifier="other-uuid"></mention-component>'
         )
         result = extract_mentions(build_payload(html))
-
         assert result == [UUID_RAFA]
 
     def test_deduplicates_repeated_uuid(self):
-        """Si el mismo UUID aparece dos veces, se retorna una sola vez."""
         html = (
             f'<mention-component entity_name="user_mention" entity_identifier="{UUID_RAFA}"></mention-component>'
             f'<mention-component entity_name="user_mention" entity_identifier="{UUID_RAFA}"></mention-component>'
         )
         result = extract_mentions(build_payload(html))
-
         assert result == [UUID_RAFA]
 
     def test_returns_empty_list_when_no_mentions(self):
-        """Sin mention-components retorna lista vacía."""
         html = "<p>Sin menciones aqui.</p>"
         result = extract_mentions(build_payload(html))
-
         assert result == []
 
-    def test_returns_empty_list_on_invalid_input(self):
-        """Input inválido (no JSON) retorna lista vacía sin lanzar excepción."""
+    def test_returns_empty_list_on_invalid_json(self):
         result = extract_mentions("esto no es json")
-
         assert result == []

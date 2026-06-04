@@ -8,54 +8,60 @@ import pytest
 from plane.api.serializers.issue import IssueSerializer
 
 
+def make_serializer(data, project):
+    return IssueSerializer(
+        data=data,
+        context={
+            "project_id": project.id,
+            "workspace_id": project.workspace.id,
+        },
+    )
+
+
+def base_data(state, start_date, target_date):
+    return {
+        "name": "Test Issue",
+        "state": state.id,
+        "priority": "none",
+        "start_date": start_date,
+        "target_date": target_date,
+    }
+
+
+@pytest.mark.qa
+@pytest.mark.daniel
 @pytest.mark.django_db
-class TestIssueSerializerDateValidation:
+class TestPU21ValidDates:
+    """PU-21: Fechas coherentes (start <= target) son aceptadas."""
 
-    def _base_data(self, project, state, start_date, target_date):
-        """Payload minimo valido para IssueSerializer."""
-        return {
-            "name": "Test Issue",
-            "state": state.id,
-            "priority": "none",
-            "start_date": start_date,
-            "target_date": target_date,
-        }
+    def test_accepts_start_date_before_target_date(self, project, default_state):
+        serializer = make_serializer(base_data(default_state, "2026-06-01", "2026-06-15"), project)
+        assert serializer.is_valid() is True
 
-    def _make_serializer(self, data, project):
-        return IssueSerializer(
-            data=data,
-            context={
-                "project_id": project.id,
-                "workspace_id": project.workspace.id,
-            },
-        )
+    def test_accepts_start_date_equal_to_target_date(self, project, default_state):
+        serializer = make_serializer(base_data(default_state, "2026-06-01", "2026-06-01"), project)
+        assert serializer.is_valid() is True
 
-    def test_pu21_accepts_start_date_before_target_date(self, project, default_state):
-        """PU-21: start_date < target_date debe ser valido."""
-        data = self._base_data(project, default_state, "2026-06-01", "2026-06-15")
-        serializer = self._make_serializer(data, project)
+    def test_accepts_null_dates(self, project, default_state):
+        serializer = make_serializer(base_data(default_state, None, None), project)
+        assert serializer.is_valid() is True
 
-        assert serializer.is_valid(), serializer.errors
 
-    def test_pu21_accepts_start_date_equal_to_target_date(self, project, default_state):
-        """PU-21 (limite exacto): start_date == target_date debe ser valido."""
-        data = self._base_data(project, default_state, "2026-06-01", "2026-06-01")
-        serializer = self._make_serializer(data, project)
+@pytest.mark.qa
+@pytest.mark.daniel
+@pytest.mark.django_db
+class TestPU22InvalidDates:
+    """PU-22: start_date > target_date es rechazado."""
 
-        assert serializer.is_valid(), serializer.errors
+    @pytest.fixture(autouse=True)
+    def setup(self, project, default_state):
+        serializer = make_serializer(base_data(default_state, "2026-06-15", "2026-06-01"), project)
+        serializer.is_valid()
+        self.valid = serializer.is_valid()
+        self.error_text = str(serializer.errors).lower()
 
-    def test_pu22_rejects_start_date_after_target_date(self, project, default_state):
-        """PU-22: start_date > target_date debe ser invalido."""
-        data = self._base_data(project, default_state, "2026-06-15", "2026-06-01")
-        serializer = self._make_serializer(data, project)
+    def test_serializer_is_invalid(self):
+        assert self.valid is False
 
-        assert not serializer.is_valid()
-        error_text = str(serializer.errors).lower()
-        assert "start date" in error_text or "target date" in error_text
-
-    def test_pu21_accepts_null_dates(self, project, default_state):
-        """Fechas nulas (sin start ni target) son validas, no hay restriccion."""
-        data = self._base_data(project, default_state, None, None)
-        serializer = self._make_serializer(data, project)
-
-        assert serializer.is_valid(), serializer.errors
+    def test_error_mentions_start_or_target_date(self):
+        assert "start date" in self.error_text or "target date" in self.error_text
