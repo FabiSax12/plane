@@ -79,7 +79,7 @@ catalogs:
       specifier: ^0.7.1
       version: 0.7.1
     '@playwright/test':
-      specifier: ^1.57.0
+      specifier: ^1.60.0
       version: 1.60.0
     '@popperjs/core':
       specifier: ^2.11.8
@@ -609,6 +609,15 @@ importers:
 
   .:
     devDependencies:
+      '@playwright/test':
+        specifier: ^1.60.0
+        version: 1.60.0
+      '@types/node':
+        specifier: 'catalog:'
+        version: 22.12.0
+      dotenv:
+        specifier: 'catalog:'
+        version: 16.4.7
       husky:
         specifier: 'catalog:'
         version: 9.1.7
