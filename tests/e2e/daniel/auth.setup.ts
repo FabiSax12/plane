@@ -9,7 +9,7 @@
  */
 import fs from "fs";
 import path from "path";
-import { test as setup, expect } from "@playwright/test";
+import { test as setup } from "@playwright/test";
 import { STORAGE_STATE, WORKSPACE_FILE } from "../../../playwright-daniel.config";
 
 const EMAIL = "salasdaniel@gmail.com";
@@ -34,13 +34,23 @@ setup("authenticate as Daniel Salas", async ({ page }) => {
   await passwordInput.fill(PASSWORD);
   await page.locator('button[type="submit"]').first().click();
 
-  // 5. Esperar redirect al workspace (URL con al menos un segmento después del host)
-  await page.waitForURL(/\/[^/]+\//, { timeout: 30_000 });
+  // 5. Plane es una SPA: tras el login puede no cambiar la URL.
+  //    Esperar a que aparezca un link de proyecto en el sidebar como indicador
+  //    de que el workspace cargó correctamente.
+  await page.waitForSelector('a[href*="/projects/"]', { timeout: 30_000 });
 
-  // 6. Extraer el workspace slug de la URL resultante
-  const workspaceSlug =
-    process.env.PLANE_WORKSPACE ??
-    new URL(page.url()).pathname.split("/").filter(Boolean)[0];
+  // 6. Extraer el workspace slug desde el href del primer link de proyecto.
+  //    Formato del href: "/{workspaceSlug}/projects/{projectId}/..."
+  let workspaceSlug = process.env.PLANE_WORKSPACE;
+  if (!workspaceSlug) {
+    const firstProjectLink = page.locator('a[href*="/projects/"]').first();
+    const href = await firstProjectLink.getAttribute("href");
+    workspaceSlug = href?.split("/").find(Boolean);
+  }
+
+  if (!workspaceSlug) {
+    throw new Error("No se pudo extraer el workspace slug. Verifica que la cuenta tiene al menos un proyecto.");
+  }
 
   // 7. Persistir workspace slug para que los specs lo lean
   const authDir = path.dirname(WORKSPACE_FILE);

@@ -1,0 +1,43 @@
+{
+  "cookies": [
+    {
+      "name": "csrftoken",
+      "value": "qfrPlTI4fHk49nAQDDAkw5Z7cTrKZtxl",
+      "domain": "makeplane.r-odio.com",
+      "path": "/",
+      "expires": 1812045628.858301,
+      "httpOnly": true,
+      "secure": false,
+      "sameSite": "Lax"
+    },
+    {
+      "name": "session-id",
+      "value": "6e2nsdtpn6jwlfheibezrqipgzf44btzcz6s1a1t5xummthghyaxp5i3uy932bk14muhwli67hhfkl5sv29h8sj3la3kwh09eu9r9p8r74wwxajgkkb6dqyxteylfe0c",
+      "domain": "makeplane.r-odio.com",
+      "path": "/",
+      "expires": 1781200828.858469,
+      "httpOnly": true,
+      "secure": false,
+      "sameSite": "Lax"
+    }
+  ],
+  "origins": [
+    {
+      "origin": "https://makeplane.r-odio.com",
+      "localStorage": [
+        {
+          "name": "userLanguage",
+          "value": "en"
+        },
+        {
+          "name": "sidebarWidth",
+          "value": "250"
+        },
+        {
+          "name": "app_sidebar_collapsed",
+          "value": "false"
+        }
+      ]
+    }
+  ]
+}

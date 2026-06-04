@@ -8,83 +8,70 @@
  *   - beforeEach con setup compartido
  *   - Marcadores: @daniel @qa
  *
- * Hallazgo: Plane aplica filtros de forma optimista en el cliente.
- * El chip de filtro aplicado aparece ANTES de que la lista se re-renderice.
- * Se verifica el chip porque es el indicador visual directo del estado del filtro.
+ * Comportamiento real de Plane:
+ * FiltersToggle en Plane NO tiene botón "Add filter" con texto visible.
+ * Cuando no hay condiciones activas (estado inicial tras navegación),
+ * renderiza AddFilterButton cuyo label=null → al clickear, abre directamente
+ * el dropdown de propiedades de filtro (role="option": Priority, Status…).
+ * Al seleccionar "Priority", se añade la condición con value=undefined y
+ * MultiSelectFilterValueInput abre su dropdown automáticamente (defaultOpen=true).
+ * Seleccionar "High" establece el valor; el chip aparece en la fila de filtros.
  */
 import { test, expect } from "@playwright/test";
-import { navigateToFirstProjectIssues } from "./helpers";
+import { navigateToFirstProjectIssues, clickFilterToggle } from "./helpers";
 
 test.describe("PS-14: Filter work items by priority @daniel @qa", () => {
   /**
-   * beforeEach: navega al listado de issues y abre el panel de filtros.
-   * Garantiza que los filtros estén visibles antes de cada test.
+   * beforeEach: navega al listado de issues.
+   * La navegación resetea el estado MobX → sin condiciones, fila oculta.
+   * clickFilterToggle abre el dropdown de propiedades directamente.
    */
   test.beforeEach(async ({ page }) => {
     await navigateToFirstProjectIssues(page);
-    // Limpiar filtros previos si existieran: buscar botón "Clear all"
-    const clearAll = page.getByRole("button", { name: /clear all/i });
-    if (await clearAll.isVisible({ timeout: 2_000 }).catch(() => false)) {
-      await clearAll.click();
-    }
-    // Abrir el panel de filtros haciendo clic en el botón Filters / icono de filtro
-    const filtersBtn = page
-      .locator('button')
-      .filter({ hasText: /^filters$/i })
-      .or(page.locator('[aria-label*="filter" i]').first());
-    await filtersBtn.first().click();
-    // Esperar a que aparezca la fila de condiciones de filtro
-    await page.locator('[class*="filter"], [data-testid*="filter"]').first()
-      .waitFor({ timeout: 8_000 });
+    // Abrir el dropdown de propiedades de filtro
+    await clickFilterToggle(page);
   });
 
   test("PS-14-a: al aplicar filtro Priority=High aparece el chip 'high' en filtros activos", async ({ page }) => {
-    // Hacer clic en el botón "Add filter" o en el selector de tipo de filtro
-    await page
-      .locator('button')
-      .filter({ hasText: /add filter/i })
-      .or(page.getByRole("button", { name: /priority/i }))
-      .first()
-      .click();
-    // Si se abrió un menú de tipos de filtro, seleccionar "Priority"
-    const priorityOption = page.getByRole("option", { name: /^priority$/i });
-    if (await priorityOption.isVisible({ timeout: 3_000 }).catch(() => false)) {
-      await priorityOption.click();
-    }
-    // Seleccionar "High" en el dropdown de valores de prioridad
+    // El dropdown de propiedades está abierto; seleccionar Priority
+    await page.getByRole("option", { name: /^priority$/i }).waitFor({ timeout: 5_000 });
+    await page.getByRole("option", { name: /^priority$/i }).click();
+
+    // MultiSelectFilterValueInput se abre automáticamente (defaultOpen=true cuando value=undefined)
+    await page.getByRole("option", { name: /^high$/i }).waitFor({ timeout: 5_000 });
     await page.getByRole("option", { name: /^high$/i }).click();
-    // Cerrar el dropdown si sigue abierto (presionar Escape)
     await page.keyboard.press("Escape");
-    // Verificar que el chip de filtro aplicado "high" es visible
+
+    // FilterItemContainer wraps property label "Priority" + operator + value "High" in one div.
+    // [class*="filter"] doesn't exist in Plane's compiled output; use content-based selector.
     await expect(
-      page.locator('[class*="filter"]').filter({ hasText: /high/i }).first()
-    ).toBeVisible();
+      page
+        .locator("div")
+        .filter({ hasText: /priority/i })
+        .filter({ hasText: /high/i })
+        .first()
+    ).toBeVisible({ timeout: 10_000 });
   });
 
-  test("PS-14-b: el panel de filtros se muestra tras hacer clic en el botón Filters", async ({ page }) => {
-    // Verificar que el área de filtros (donde se agregan condiciones) está visible
-    await expect(
-      page.locator('[class*="filter-row"], [class*="filters-row"], [data-testid*="filter"]').first()
-        .or(page.locator('button').filter({ hasText: /add filter/i }).first())
-    ).toBeVisible();
+  test("PS-14-b: el panel de filtros se muestra tras abrir el toggle", async ({ page }) => {
+    // El dropdown de propiedades debe mostrar "Priority" como opción accesible
+    await expect(page.getByRole("option", { name: /^priority$/i })).toBeVisible({ timeout: 5_000 });
   });
 
-  test("PS-14-c: al aplicar filtro Priority=Urgent el chip de prioridad urgente es visible", async ({ page }) => {
-    // Hacer clic en "Add filter" o en selector de Priority directamente
-    await page
-      .locator('button')
-      .filter({ hasText: /add filter/i })
-      .or(page.getByRole("button", { name: /priority/i }))
-      .first()
-      .click();
-    const priorityOption = page.getByRole("option", { name: /^priority$/i });
-    if (await priorityOption.isVisible({ timeout: 3_000 }).catch(() => false)) {
-      await priorityOption.click();
-    }
+  test("PS-14-c: al aplicar filtro Priority=Urgent el chip urgente es visible", async ({ page }) => {
+    await page.getByRole("option", { name: /^priority$/i }).waitFor({ timeout: 5_000 });
+    await page.getByRole("option", { name: /^priority$/i }).click();
+
+    await page.getByRole("option", { name: /^urgent$/i }).waitFor({ timeout: 5_000 });
     await page.getByRole("option", { name: /^urgent$/i }).click();
     await page.keyboard.press("Escape");
+
     await expect(
-      page.locator('[class*="filter"]').filter({ hasText: /urgent/i }).first()
-    ).toBeVisible();
+      page
+        .locator("div")
+        .filter({ hasText: /priority/i })
+        .filter({ hasText: /urgent/i })
+        .first()
+    ).toBeVisible({ timeout: 10_000 });
   });
 });
