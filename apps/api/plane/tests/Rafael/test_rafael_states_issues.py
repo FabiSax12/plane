@@ -22,6 +22,7 @@ from plane.app.serializers import LabelSerializer
 
 @pytest.mark.unit
 @pytest.mark.rafael
+@pytest.mark.qa
 class TestStateUsageQuery:
     """PU-13 / PU-14: consulta ORM que determina si un estado tiene issues asociados."""
 
@@ -100,6 +101,7 @@ class TestStateUsageQuery:
 
 @pytest.mark.unit
 @pytest.mark.rafael
+@pytest.mark.qa
 class TestDefaultStatesConstant:
     """PU-15 / PU-16: estructura y contenido de DEFAULT_STATES."""
 
@@ -137,6 +139,7 @@ class TestDefaultStatesConstant:
 
 @pytest.mark.unit
 @pytest.mark.rafael
+@pytest.mark.qa
 class TestLabelSerializerColor:
     """PU-17: LabelSerializer acepta color hex válido."""
 
@@ -189,6 +192,7 @@ class TestLabelSerializerColor:
 
 @pytest.mark.unit
 @pytest.mark.rafael
+@pytest.mark.qa
 class TestIssueSequenceId:
     """PU-18: sequence_id se auto-incrementa correctamente por proyecto."""
 
