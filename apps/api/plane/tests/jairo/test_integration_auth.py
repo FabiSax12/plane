@@ -1,4 +1,5 @@
-﻿import os
+﻿import json
+import os
 import uuid
 import pytest
 from django.test import Client
@@ -153,7 +154,7 @@ class TestPI06ForgotPassword:
         user = UserFactory(email="usuario@itcr.ac.cr")
         response = django_client.post(
             "/auth/forgot-password/",
-            data={"email": "usuario@itcr.ac.cr"},
+            data=json.dumps({"email": "usuario@itcr.ac.cr"}),
             content_type="application/json",
         )
         assert response.status_code == 200
