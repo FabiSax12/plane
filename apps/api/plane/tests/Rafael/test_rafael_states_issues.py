@@ -5,6 +5,7 @@
 # Ejecución:
 #   docker compose -f deploy/docker-compose-test.yml exec api-tests \
 #     python -m pytest plane/tests/Rafael/test_rafael_states_issues.py -v
+# docker compose -f docker-compose-test.yml run api-tests python -m pytest -m "rafael and unit" -v
 
 import pytest
 
@@ -20,6 +21,7 @@ from plane.app.serializers import LabelSerializer
 
 @pytest.mark.unit
 @pytest.mark.rafael
+@pytest.mark.qa
 class TestPU13StateWithoutIssues:
     """PU-13: estado sin issues → query False → borrado permitido."""
 
@@ -56,6 +58,7 @@ class TestPU13StateWithoutIssues:
 
 @pytest.mark.unit
 @pytest.mark.rafael
+@pytest.mark.qa
 class TestPU14StateWithIssues:
     """PU-14: estado con issues → query True → borrado bloqueado."""
 
@@ -103,6 +106,7 @@ class TestPU14StateWithIssues:
 
 @pytest.mark.unit
 @pytest.mark.rafael
+@pytest.mark.qa
 class TestDefaultStatesConstant:
     """PU-15 / PU-16: estructura y contenido de DEFAULT_STATES."""
 
@@ -128,6 +132,7 @@ class TestDefaultStatesConstant:
 
 @pytest.mark.unit
 @pytest.mark.rafael
+@pytest.mark.qa
 class TestLabelSerializerColor:
     """PU-17: validación de color y unicidad de nombre en LabelSerializer."""
 
@@ -183,6 +188,7 @@ class TestLabelSerializerColor:
 
 @pytest.mark.unit
 @pytest.mark.rafael
+@pytest.mark.qa
 class TestIssueSequenceId:
     """PU-18: sequence_id se auto-incrementa por proyecto."""
 

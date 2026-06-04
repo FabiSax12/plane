@@ -5,6 +5,7 @@
 # Ejecución:
 #   docker compose -f deploy/docker-compose-test.yml exec api-tests \
 #     python -m pytest plane/tests/Rafael/test_rafael_projects_states.py -v
+# docker compose -f docker-compose-test.yml run api-tests python -m pytest -m "rafael and contract" -v
 
 import pytest
 from rest_framework import status
@@ -20,6 +21,7 @@ from plane.db.models.state import StateGroup
 
 @pytest.mark.contract
 @pytest.mark.rafael
+@pytest.mark.qa
 class TestPI13CreateProjectWithStates:
     """PI-13: crear proyecto vía API v1 genera 6 estados automáticamente."""
 
@@ -67,6 +69,7 @@ class TestPI13CreateProjectWithStates:
 
 @pytest.mark.contract
 @pytest.mark.rafael
+@pytest.mark.qa
 class TestPI14ListProjectMembers:
     """PI-14: GET de miembros retorna la lista completa."""
 
@@ -114,6 +117,7 @@ class TestPI14ListProjectMembers:
 
 @pytest.mark.contract
 @pytest.mark.rafael
+@pytest.mark.qa
 class TestPI15ArchiveProject:
     """PI-15: archivar proyecto setea archived_at."""
 
@@ -158,6 +162,7 @@ class TestPI15ArchiveProject:
 
 @pytest.mark.contract
 @pytest.mark.rafael
+@pytest.mark.qa
 class TestPI16IssueRelation:
     """PI-16: relación blocked_by genera relación inversa blocking."""
 
@@ -229,6 +234,7 @@ class TestPI16IssueRelation:
 
 @pytest.mark.contract
 @pytest.mark.rafael
+@pytest.mark.qa
 class TestPI17DeleteStateInUse:
     """PI-17: DELETE state con issues → 400 con mensaje específico."""
 
@@ -278,6 +284,7 @@ class TestPI17DeleteStateInUse:
 
 @pytest.mark.contract
 @pytest.mark.rafael
+@pytest.mark.qa
 class TestPI18WorkItemSequenceId:
     """PI-18: crear segundo work item vía API retorna sequence_id == 2."""
 
