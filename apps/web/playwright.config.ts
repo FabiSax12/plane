@@ -1,37 +1,28 @@
-import { defineConfig, devices } from "@playwright/test";
+import { defineConfig } from "@playwright/test";
+import { config } from "dotenv";
+import { fileURLToPath } from "url";
+import path from "path";
 
-/**
- * Configuración de Playwright para pruebas de sistema (PS-*).
- * Requiere que el servidor esté corriendo en http://localhost:3000
- * y el backend Django en http://localhost:8000.
- *
- * Configurar variables de entorno antes de ejecutar:
- *   E2E_BASE_URL   — URL del frontend (default: http://localhost:3000)
- *   E2E_USER_EMAIL — correo del usuario de prueba
- *   E2E_USER_PASS  — contraseña del usuario de prueba
- */
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+config({ path: path.resolve(__dirname, ".env.e2e") });
 
 export default defineConfig({
-  testDir: "./tests/e2e/Rafael",
-  fullyParallel: true,
-  forbidOnly: !!process.env.CI,
-  retries: 2,
-  workers: 1,
-  reporter: [["html", { outputFolder: "playwright-report" }], ["list"]],
-
-  timeout: 120000,
-
+  testDir: "./tests/e2e",
+  testMatch: "**/*.spec.ts",
+  timeout: 30000,
+  retries: 0,
   use: {
-    baseURL: process.env.E2E_BASE_URL ?? "http://localhost:3000",
-    trace: "on-first-retry",
+    baseURL: "https://makeplane.r-odio.com",
+    headless: true,
     screenshot: "only-on-failure",
-    video: "retain-on-failure",
+    trace: "on-first-retry",
   },
-
   projects: [
     {
       name: "chromium",
-      use: { ...devices["Desktop Chrome"] },
+      use: { browserName: "chromium" },
     },
   ],
 });

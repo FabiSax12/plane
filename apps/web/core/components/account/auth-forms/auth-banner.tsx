@@ -25,6 +25,7 @@ export function AuthBanner(props: TAuthBanner) {
   return (
     <div
       role="alert"
+      data-testid="auth-banner"
       className="relative flex items-center gap-2 rounded-md border border-accent-strong/50 bg-accent-primary/10 p-2"
     >
       <div className="grid size-4 flex-shrink-0 place-items-center">

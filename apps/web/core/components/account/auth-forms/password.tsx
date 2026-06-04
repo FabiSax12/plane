@@ -105,11 +105,11 @@ export const AuthPasswordForm = observer(function AuthPasswordForm(props: Props)
 
   const isButtonDisabled = useMemo(
     () =>
-      !isSubmitting &&
-      !!passwordFormData.password &&
-      (mode === EAuthModes.SIGN_UP ? passwordFormData.password === passwordFormData.confirm_password : true)
-        ? false
-        : true,
+      !(
+        !isSubmitting &&
+        !!passwordFormData.password &&
+        (mode === EAuthModes.SIGN_UP ? passwordFormData.password === passwordFormData.confirm_password : true)
+      ),
     [isSubmitting, mode, passwordFormData.confirm_password, passwordFormData.password]
   );
 
@@ -214,7 +214,7 @@ export const AuthPasswordForm = observer(function AuthPasswordForm(props: Props)
               onFocus={() => setIsPasswordInputFocused(true)}
               onBlur={() => setIsPasswordInputFocused(false)}
               autoComplete="off"
-              autoFocus
+              data-testid="signin-password"
             />
             <button
               type="button"
@@ -251,6 +251,7 @@ export const AuthPasswordForm = observer(function AuthPasswordForm(props: Props)
                 onFocus={() => setIsRetryPasswordInputFocused(true)}
                 onBlur={() => setIsRetryPasswordInputFocused(false)}
                 autoComplete="off"
+                data-testid="signup-confirm-password"
               />
               <button
                 type="button"
@@ -280,7 +281,14 @@ export const AuthPasswordForm = observer(function AuthPasswordForm(props: Props)
         <div className="space-y-2.5">
           {mode === EAuthModes.SIGN_IN ? (
             <>
-              <Button type="submit" variant="primary" className="w-full" size="xl" disabled={isButtonDisabled}>
+              <Button
+                type="submit"
+                variant="primary"
+                className="w-full"
+                size="xl"
+                disabled={isButtonDisabled}
+                data-testid="signin-submit"
+              >
                 {isSubmitting ? (
                   <Spinner height="20px" width="20px" />
                 ) : isSMTPConfigured ? (
@@ -303,7 +311,14 @@ export const AuthPasswordForm = observer(function AuthPasswordForm(props: Props)
               )}
             </>
           ) : (
-            <Button type="submit" variant="primary" className="w-full" size="xl" disabled={isButtonDisabled}>
+            <Button
+              type="submit"
+              variant="primary"
+              className="w-full"
+              size="xl"
+              disabled={isButtonDisabled}
+              data-testid="signup-submit"
+            >
               {isSubmitting ? <Spinner height="20px" width="20px" /> : "Create account"}
             </Button>
           )}
