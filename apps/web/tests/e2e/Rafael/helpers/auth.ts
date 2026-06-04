@@ -13,8 +13,9 @@ export async function loginAs(page: Page, email = EMAIL, password = PASSWORD) {
   await page.getByRole("textbox", { name: "Password" }).fill(password);
   await page.getByRole("button", { name: "Go to workspace" }).click();
 
-  await page.waitForURL((url) => !url.href.includes("/sign-in"), { timeout: 20000 });
-  await page.waitForLoadState("networkidle");
+  await page.waitForURL((url) => !url.href.includes("/sign-in"), { timeout: 30000 });
+  // Esperar a que el sidebar esté hidratado antes de continuar
+  await page.getByLabel("Main sidebar").waitFor({ state: "visible", timeout: 30000 });
 }
 
 export { BASE_URL, EMAIL, PASSWORD };
