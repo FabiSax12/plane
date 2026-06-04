@@ -9,7 +9,7 @@ const __dirname = path.dirname(__filename);
 config({ path: path.resolve(__dirname, ".env.e2e") });
 
 export default defineConfig({
-  testDir: "./e2e/jairo",
+  testDir: "./tests/e2e",
   testMatch: "**/*.spec.ts",
   timeout: 30000,
   retries: 0,
