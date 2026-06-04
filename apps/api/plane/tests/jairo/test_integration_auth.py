@@ -39,6 +39,8 @@ def _make_client():
 # ---------------------------------------------------------------------------
 
 @pytest.mark.django_db
+@pytest.mark.qa
+@pytest.mark.jairo
 class TestPI01SignUpValid:
     def setup_method(self):
         _setup_instance()
@@ -69,6 +71,8 @@ class TestPI01SignUpValid:
 # ---------------------------------------------------------------------------
 
 @pytest.mark.django_db
+@pytest.mark.qa
+@pytest.mark.jairo
 class TestPI02SignUpDuplicateEmail:
     def setup_method(self):
         _setup_instance()
@@ -95,6 +99,8 @@ class TestPI02SignUpDuplicateEmail:
 # ---------------------------------------------------------------------------
 
 @pytest.mark.django_db
+@pytest.mark.qa
+@pytest.mark.jairo
 class TestPI03SignInValid:
     def setup_method(self):
         _setup_instance()
@@ -123,6 +129,8 @@ class TestPI03SignInValid:
 # ---------------------------------------------------------------------------
 
 @pytest.mark.django_db
+@pytest.mark.qa
+@pytest.mark.jairo
 class TestPI04SignInWrongPassword:
     def setup_method(self):
         _setup_instance()
@@ -154,6 +162,8 @@ class TestPI04SignInWrongPassword:
 # ---------------------------------------------------------------------------
 
 @pytest.mark.django_db
+@pytest.mark.qa
+@pytest.mark.jairo
 class TestPI05AuthenticationThrottle:
     def setup_method(self):
         _setup_instance()
@@ -178,6 +188,8 @@ class TestPI05AuthenticationThrottle:
 # ---------------------------------------------------------------------------
 
 @pytest.mark.django_db
+@pytest.mark.qa
+@pytest.mark.jairo
 class TestPI06ForgotPassword:
     def setup_method(self):
         _setup_instance()

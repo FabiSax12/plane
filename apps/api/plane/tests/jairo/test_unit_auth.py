@@ -4,6 +4,8 @@ from django.core.validators import validate_email
 from zxcvbn import zxcvbn
 
 
+@pytest.mark.qa
+@pytest.mark.jairo
 class TestPU01ValidEmail:
     """PU-01: Aceptar correo valido con validate_email de Django"""
 
@@ -11,6 +13,8 @@ class TestPU01ValidEmail:
         assert validate_email("usuario.prueba@itcr.ac.cr") is None
 
 
+@pytest.mark.qa
+@pytest.mark.jairo
 class TestPU02InvalidEmail:
     """PU-02: Rechazar correo invalido con validate_email de Django"""
 
@@ -19,6 +23,8 @@ class TestPU02InvalidEmail:
             validate_email("sin-arroba.com")
 
 
+@pytest.mark.qa
+@pytest.mark.jairo
 class TestPU03StrongPassword:
     """PU-03: Aceptar contrasena fuerte (zxcvbn score >= 3)"""
 
@@ -27,6 +33,8 @@ class TestPU03StrongPassword:
         assert result["score"] >= 3
 
 
+@pytest.mark.qa
+@pytest.mark.jairo
 class TestPU04WeakPassword:
     """PU-04: Rechazar contrasena debil (zxcvbn score < 3)"""
 

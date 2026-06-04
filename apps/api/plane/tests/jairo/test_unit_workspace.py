@@ -2,6 +2,8 @@
 from plane.app.serializers.workspace import WorkSpaceSerializer
 
 
+@pytest.mark.qa
+@pytest.mark.jairo
 class TestPU05ValidSlug:
     """PU-05: Aceptar slug alfanumerico-guion en validate_slug"""
 
@@ -11,6 +13,8 @@ class TestPU05ValidSlug:
         assert serializer.is_valid() is True
 
 
+@pytest.mark.qa
+@pytest.mark.jairo
 class TestPU06InvalidSlug:
     """PU-06: Rechazar slug con caracteres especiales en validate_slug"""
 
