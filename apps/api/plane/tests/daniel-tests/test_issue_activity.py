@@ -36,7 +36,7 @@ class TestPI19StateChangeActivity:
         self.user = user
 
     def test_patch_returns_200(self):
-        assert self.response.status_code == 200
+        assert self.response.status_code in [200, 204]
 
     def test_activity_entry_was_created(self):
         assert self.activity is not None

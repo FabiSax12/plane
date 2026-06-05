@@ -33,9 +33,9 @@ class TestBurndownPlotReturnShape:
     """PU-25: burndown_plot retorna un dict con fechas como claves."""
 
     @pytest.fixture(autouse=True)
-    def setup(self, project, default_state, workspace):
+    def setup(self, project, default_state, workspace, user):
         now = timezone.now()
-        self.cycle = CycleFactory(project=project, start_date=now, end_date=now + timedelta(days=4))
+        self.cycle = CycleFactory(project=project, owned_by=user, start_date=now, end_date=now + timedelta(days=4))
         annotated = get_annotated_cycle(self.cycle)
         self.result = burndown_plot(
             queryset=annotated,
@@ -61,8 +61,8 @@ class TestBurndownPlotReturnShape:
 class TestBurndownPlotEmptyCycle:
     """Ciclo sin fechas retorna dict vacio."""
 
-    def test_returns_empty_dict_when_cycle_has_no_dates(self, project, default_state, workspace):
-        cycle = CycleFactory(project=project, start_date=None, end_date=None)
+    def test_returns_empty_dict_when_cycle_has_no_dates(self, project, default_state, workspace, user):
+        cycle = CycleFactory(project=project, owned_by=user, start_date=None, end_date=None)
         annotated = get_annotated_cycle(cycle)
         result = burndown_plot(
             queryset=annotated,
@@ -87,6 +87,7 @@ class TestBurndownPlotWithCompletedIssues:
         yesterday = timezone.now() - timedelta(days=1)
         self.cycle = CycleFactory(
             project=project,
+            owned_by=user,
             start_date=two_days_ago,
             end_date=timezone.now(),
         )

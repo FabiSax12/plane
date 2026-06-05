@@ -26,16 +26,15 @@ def workspace(db, user):
 
 @pytest.fixture
 def project(db, workspace, user):
-    """Project with cycles and modules enabled"""
-    p = ProjectFactory(
+    """Project inside the test workspace"""
+    project = ProjectFactory(
         workspace=workspace,
         created_by=user,
         updated_by=user,
         cycle_view=True,
-        module_view=True,
     )
-    ProjectMemberFactory(project=p, member=user, role=20)
-    return p
+    ProjectMemberFactory(project=project, member=user, role=20)
+    return project
 
 
 @pytest.fixture
