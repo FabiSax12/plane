@@ -1,6 +1,6 @@
 """
  * Author: Fabián Vargas
- * Test cases: PU-12
+ * Test cases: PU-10
 """
 
 import pytest
