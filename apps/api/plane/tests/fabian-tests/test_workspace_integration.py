@@ -82,130 +82,254 @@ ROLE_ACTION_MATRIX = [
 class TestWorkspaceIntegration:
     """Integration tests for the workspace and invitation endpoints"""
 
+    # ------------------------------------------------------------------
+    # PI-07 — POST /api/workspaces/ with valid data
+    # ------------------------------------------------------------------
+    URL_CREATE_WORKSPACE = "/api/workspaces/"
+    NEW_WORKSPACE_PAYLOAD = {
+        "name": "Equipo Plane QA",
+        "slug": "equipo-plane-qa",
+        "organization_size": "10-50",
+    }
+
     @pytest.mark.django_db
     @patch("plane.bgtasks.workspace_seed_task.workspace_seed.delay")
-    def test_create_workspace_valid_data_returns_201(self, mock_workspace_seed, session_client, create_user):
-        """PI-07: POST /api/workspaces/ with valid data returns 201 and persists workspace with creator as Admin"""
-        url = "/api/workspaces/"
+    def test_create_workspace_returns_201(
+        self, mock_workspace_seed, session_client, precondition_slug_not_in_use
+    ):
+        """[PI/07] POST /api/workspaces/ with valid data returns 201."""
+        response = session_client.post(
+            self.URL_CREATE_WORKSPACE, self.NEW_WORKSPACE_PAYLOAD, format="json"
+        )
 
-        # Precondition: the slug does not exist
-        assert not Workspace.objects.filter(slug="equipo-plane-qa").exists()
-
-        workspace_data = {
-            "name": "Equipo Plane QA",
-            "slug": "equipo-plane-qa",
-            "organization_size": "10-50",
-        }
-
-        response = session_client.post(url, workspace_data, format="json")
-
-        # Verify the response status
         assert response.status_code == status.HTTP_201_CREATED
 
-        # Verify the workspace was persisted in the database
-        workspace = Workspace.objects.get(slug=workspace_data["slug"])
-        assert workspace.name == workspace_data["name"]
-        assert workspace.organization_size == workspace_data["organization_size"]
+    @pytest.mark.django_db
+    @patch("plane.bgtasks.workspace_seed_task.workspace_seed.delay")
+    def test_create_workspace_persists_name(
+        self, mock_workspace_seed, session_client, precondition_slug_not_in_use
+    ):
+        """[PI/07] the created workspace persists the `name` field as submitted."""
+        session_client.post(
+            self.URL_CREATE_WORKSPACE, self.NEW_WORKSPACE_PAYLOAD, format="json"
+        )
+
+        workspace = Workspace.objects.get(slug=self.NEW_WORKSPACE_PAYLOAD["slug"])
+        assert workspace.name == self.NEW_WORKSPACE_PAYLOAD["name"]
+
+    @pytest.mark.django_db
+    @patch("plane.bgtasks.workspace_seed_task.workspace_seed.delay")
+    def test_create_workspace_persists_organization_size(
+        self, mock_workspace_seed, session_client, precondition_slug_not_in_use
+    ):
+        """[PI/07] the created workspace persists the `organization_size` field."""
+        session_client.post(
+            self.URL_CREATE_WORKSPACE, self.NEW_WORKSPACE_PAYLOAD, format="json"
+        )
+
+        workspace = Workspace.objects.get(slug=self.NEW_WORKSPACE_PAYLOAD["slug"])
+        assert workspace.organization_size == self.NEW_WORKSPACE_PAYLOAD["organization_size"]
+
+    @pytest.mark.django_db
+    @patch("plane.bgtasks.workspace_seed_task.workspace_seed.delay")
+    def test_create_workspace_sets_owner(
+        self, mock_workspace_seed, session_client, create_user, precondition_slug_not_in_use
+    ):
+        """[PI/07] the created workspace's `owner` is the requesting user."""
+        session_client.post(
+            self.URL_CREATE_WORKSPACE, self.NEW_WORKSPACE_PAYLOAD, format="json"
+        )
+
+        workspace = Workspace.objects.get(slug=self.NEW_WORKSPACE_PAYLOAD["slug"])
         assert workspace.owner == create_user
 
-        # Verify the creator is registered as a WorkspaceMember with Admin role (20)
+    @pytest.mark.django_db
+    @patch("plane.bgtasks.workspace_seed_task.workspace_seed.delay")
+    def test_create_workspace_creates_admin_member(
+        self, mock_workspace_seed, session_client, create_user, precondition_slug_not_in_use
+    ):
+        """[PI/07] the creator is registered as a WorkspaceMember with Admin role (20)."""
+        session_client.post(
+            self.URL_CREATE_WORKSPACE, self.NEW_WORKSPACE_PAYLOAD, format="json"
+        )
+
+        workspace = Workspace.objects.get(slug=self.NEW_WORKSPACE_PAYLOAD["slug"])
         workspace_member = WorkspaceMember.objects.get(workspace=workspace, member=create_user)
         assert workspace_member.role == 20
 
-        # Verify the workspace_seed task was dispatched for the new workspace
+    @pytest.mark.django_db
+    @patch("plane.bgtasks.workspace_seed_task.workspace_seed.delay")
+    def test_create_workspace_dispatches_seed_task(
+        self, mock_workspace_seed, session_client, precondition_slug_not_in_use
+    ):
+        """[PI/07] the workspace_seed task is dispatched for the new workspace."""
+        response = session_client.post(
+            self.URL_CREATE_WORKSPACE, self.NEW_WORKSPACE_PAYLOAD, format="json"
+        )
+
         mock_workspace_seed.assert_called_once_with(response.data["id"])
 
-    @pytest.mark.django_db
-    def test_create_workspace_duplicate_slug_returns_409(self, session_client):
-        """PI-08: POST /api/workspaces/ with an existing slug returns 409 with the expected error body"""
-        url = "/api/workspaces/"
-
-        # Precondition: a workspace with slug 'equipo-qa' already exists
-        WorkspaceFactory(slug="equipo-qa", name="Equipo QA")
-        assert Workspace.objects.filter(slug="equipo-qa").exists()
-
-        # Attempt to create another workspace reusing the same slug
-        duplicate_data = {
-            "name": "Equipo QA Duplicado",
-            "slug": "equipo-qa",
-        }
-
-        response = session_client.post(url, duplicate_data, format="json")
-
-        # The API must signal the conflict via 409 with the documented error body
-        assert response.status_code == status.HTTP_409_CONFLICT
-        assert response.data == {"slug": "The workspace with the slug already exists"}
+    # ------------------------------------------------------------------
+    # PI-08 — POST /api/workspaces/ with an existing slug
+    # ------------------------------------------------------------------
+    DUPLICATE_PAYLOAD = {
+        "name": "Equipo QA Duplicado",
+        "slug": "equipo-qa",
+    }
 
     @pytest.mark.django_db
-    def test_create_workspace_invitation_as_admin_returns_201(self, api_key_client, workspace, create_user):
-        """PI-09: POST /api/v1/workspaces/{slug}/invitations/ as Admin (role=20) returns 201 and persists the invitation"""
+    def test_create_workspace_duplicate_slug_returns_400(
+        self, session_client, precondition_workspace_with_duplicate_slug_exists
+    ):
+        """[PI/08] POST /api/workspaces/ with an existing slug returns 400.
+
+        The Workspace.slug field is a `models.SlugField(unique=True)`, so DRF
+        auto-generates a `UniqueValidator` on the serializer. The view uses
+        `is_valid(raise_exception=True)`, which short-circuits with 400
+        before the view's `try/except IntegrityError` (which would have
+        returned 409) can run.
+        """
+        response = session_client.post(
+            self.URL_CREATE_WORKSPACE, self.DUPLICATE_PAYLOAD, format="json"
+        )
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+    @pytest.mark.django_db
+    def test_create_workspace_duplicate_slug_error_body(
+        self, session_client, precondition_workspace_with_duplicate_slug_exists
+    ):
+        """[PI/08] the 400 response carries the unique-violation error for slug."""
+        response = session_client.post(
+            self.URL_CREATE_WORKSPACE, self.DUPLICATE_PAYLOAD, format="json"
+        )
+
+        assert response.data == {"slug": ["Workspace with this slug already exists."]}
+
+    # ------------------------------------------------------------------
+    # PI-09 — POST /api/v1/workspaces/{slug}/invitations/ as Admin
+    # ------------------------------------------------------------------
+    @pytest.mark.django_db
+    def test_invitation_as_admin_returns_201(
+        self, api_key_client, workspace, precondition_caller_is_workspace_admin
+    ):
+        """[PI/09] POST /api/v1/workspaces/{slug}/invitations/ as Admin returns 201."""
         url = f"/api/v1/workspaces/{workspace.slug}/invitations/"
+        payload = {"email": "invitee@plane.so", "role": 15}
 
-        # Precondition: the requesting user is a WorkspaceMember with Admin role (20)
-        assert WorkspaceMember.objects.filter(
-            workspace=workspace, member=create_user, role=20
-        ).exists()
+        response = api_key_client.post(url, payload, format="json")
 
-        invitation_data = {
-            "email": "invitee@plane.so",
-            "role": 15,  # Member role
-        }
-
-        response = api_key_client.post(url, invitation_data, format="json")
-
-        # Verify the response status
         assert response.status_code == status.HTTP_201_CREATED
 
-        # Verify the invitation record was persisted with the expected fields
+    @pytest.mark.django_db
+    def test_invitation_as_admin_persists_role(
+        self, api_key_client, workspace, precondition_caller_is_workspace_admin
+    ):
+        """[PI/09] the invitation record is persisted with the requested role."""
+        url = f"/api/v1/workspaces/{workspace.slug}/invitations/"
+        payload = {"email": "invitee@plane.so", "role": 15}
+
+        api_key_client.post(url, payload, format="json")
+
         invitation = WorkspaceMemberInvite.objects.get(
-            workspace=workspace, email=invitation_data["email"]
+            workspace=workspace, email=payload["email"]
         )
-        assert invitation.role == invitation_data["role"]
-        assert invitation.accepted is False
-        assert invitation.responded_at is None
-        # The model auto-populates a creation timestamp (used by the invite lifecycle)
-        assert invitation.created_at is not None
+        assert invitation.role == payload["role"]
 
     @pytest.mark.django_db
-    def test_create_workspace_invitation_as_member_returns_403(self, api_key_client, workspace, create_user):
-        """PI-10: POST /api/v1/workspaces/{slug}/invitations/ as Member (role=15) returns 403
-        and persists no invitation row.
-
-        The v1 invitations endpoint is guarded by `WorkspaceOwnerPermission`
-        (apps/api/plane/utils/permissions/workspace.py:51), which only permits
-        WorkspaceMember rows with role == 20 (Admin). A role=15 (Member) caller
-        must be rejected with 403 *before* the serializer runs.
-        """
-        # Demote the (api-key-authenticated) caller from Admin (20) to Member (15)
-        updated_rows = WorkspaceMember.objects.filter(
-            workspace=workspace, member=create_user
-        ).update(role=15)
-        assert updated_rows == 1
-        assert WorkspaceMember.objects.filter(
-            workspace=workspace, member=create_user, role=15
-        ).exists()
-
+    def test_invitation_as_admin_accepted_false(
+        self, api_key_client, workspace, precondition_caller_is_workspace_admin
+    ):
+        """[PI/09] the invitation is stored with `accepted=False`."""
         url = f"/api/v1/workspaces/{workspace.slug}/invitations/"
+        payload = {"email": "invitee-accepted@plane.so", "role": 15}
 
-        invitation_data = {
-            "email": "invitee-blocked@plane.so",
-            "role": 15,
-        }
+        api_key_client.post(url, payload, format="json")
 
-        # Sanity check: no invitations exist for this workspace yet
-        assert WorkspaceMemberInvite.objects.filter(workspace=workspace).count() == 0
+        invitation = WorkspaceMemberInvite.objects.get(
+            workspace=workspace, email=payload["email"]
+        )
+        assert invitation.accepted is False
 
-        response = api_key_client.post(url, invitation_data, format="json")
+    @pytest.mark.django_db
+    def test_invitation_as_admin_responded_at_null(
+        self, api_key_client, workspace, precondition_caller_is_workspace_admin
+    ):
+        """[PI/09] the invitation has no `responded_at` timestamp yet."""
+        url = f"/api/v1/workspaces/{workspace.slug}/invitations/"
+        payload = {"email": "invitee-responded@plane.so", "role": 15}
 
-        # WorkspaceOwnerPermission rejects non-admin members
+        api_key_client.post(url, payload, format="json")
+
+        invitation = WorkspaceMemberInvite.objects.get(
+            workspace=workspace, email=payload["email"]
+        )
+        assert invitation.responded_at is None
+
+    @pytest.mark.django_db
+    def test_invitation_as_admin_created_at_not_null(
+        self, api_key_client, workspace, precondition_caller_is_workspace_admin
+    ):
+        """[PI/09] the invitation has a populated `created_at` timestamp."""
+        url = f"/api/v1/workspaces/{workspace.slug}/invitations/"
+        payload = {"email": "invitee-created@plane.so", "role": 15}
+
+        api_key_client.post(url, payload, format="json")
+
+        invitation = WorkspaceMemberInvite.objects.get(
+            workspace=workspace, email=payload["email"]
+        )
+        assert invitation.created_at is not None
+
+    # ------------------------------------------------------------------
+    # PI-10 — POST /api/v1/workspaces/{slug}/invitations/ as Member
+    # ------------------------------------------------------------------
+    @pytest.mark.django_db
+    def test_invitation_as_member_returns_403(
+        self, api_key_client, workspace, precondition_demoted_to_member_and_no_invitations
+    ):
+        """[PI/10] WorkspaceOwnerPermission rejects non-admin members with 403."""
+        url = f"/api/v1/workspaces/{workspace.slug}/invitations/"
+        payload = {"email": "invitee-blocked@plane.so", "role": 15}
+
+        response = api_key_client.post(url, payload, format="json")
+
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
-        # No WorkspaceMemberInvite row was created
+    @pytest.mark.django_db
+    def test_invitation_as_member_no_invitations_total(
+        self, api_key_client, workspace, precondition_demoted_to_member_and_no_invitations
+    ):
+        """[PI/10] no WorkspaceMemberInvite rows are created for the workspace."""
+        url = f"/api/v1/workspaces/{workspace.slug}/invitations/"
+        payload = {"email": "invitee-count@plane.so", "role": 15}
+
+        api_key_client.post(url, payload, format="json")
+
         assert WorkspaceMemberInvite.objects.filter(workspace=workspace).count() == 0
+
+    @pytest.mark.django_db
+    def test_invitation_as_member_no_specific_invite(
+        self, api_key_client, workspace, precondition_demoted_to_member_and_no_invitations
+    ):
+        """[PI/10] no WorkspaceMemberInvite row exists for the rejected email."""
+        url = f"/api/v1/workspaces/{workspace.slug}/invitations/"
+        payload = {"email": "invitee-specific@plane.so", "role": 15}
+
+        api_key_client.post(url, payload, format="json")
+
         assert not WorkspaceMemberInvite.objects.filter(
-            workspace=workspace, email=invitation_data["email"]
+            workspace=workspace, email=payload["email"]
         ).exists()
 
+    # ------------------------------------------------------------------
+    # PI-11 — 3 roles × 8 actions = 24 parametrized permission cases.
+    # ------------------------------------------------------------------
+    # This test is intentionally kept as a single parametrized body: each
+    # (role, action) cell already has exactly one assertion against the
+    # expected status. The `assert updated == 1` for the role update is part
+    # of the arrange/act phase (it verifies the precondition fixture worked),
+    # not an independent behaviour assertion.
     @pytest.mark.django_db
     @pytest.mark.parametrize("role,action,expected_status", ROLE_ACTION_MATRIX)
     def test_role_action_permission_matrix(
@@ -217,35 +341,21 @@ class TestWorkspaceIntegration:
         action,
         expected_status,
     ):
-        """PI-11: 3 roles × 8 actions = 24 parametrized permission cases.
-
-        For each (role, action) cell:
-          1. The caller (`create_user`) is set as a WorkspaceMember with the
-             parametrized role; for project-scoped actions they are also
-             registered as a ProjectMember with the same role.
-          2. A `second_user` (workspace Member, role=15) is created and used as
-             the target for action 2/3/6/7 (so admin requests don't trip the
-             "cannot remove/update yourself" guards).
-          3. The relevant endpoint is invoked through the session client.
-          4. The response status is compared against the *real* code path,
-             not the spec's ideal matrix (see ROLE_ACTION_MATRIX above).
-
-        Background tasks dispatched by some actions are patched so the test
-        only exercises the request/response cycle.
-        """
-        # 1. Set the caller's workspace role to the parametrized one
+        """[PI/11] For each (role, action) cell, the response status matches the
+        *real* code path (see ROLE_ACTION_MATRIX above)."""
+        # Arrange: set the caller's workspace role
         updated = WorkspaceMember.objects.filter(
             workspace=workspace, member=create_user
         ).update(role=role)
         assert updated == 1
 
-        # 2. Second user — workspace Member (role=15). Used as the action target.
-        second_user = UserFactory()
+        # Arrange: a second user used as the action target for 2/3/6/7
+        second_user = UserFactory(username=f"second-user-{action}-{role}")
         WorkspaceMember.objects.create(
             workspace=workspace, member=second_user, role=15
         )
 
-        # 3. Project setup for project-scoped actions
+        # Arrange: project setup for project-scoped actions
         project = None
         if action in ("add_to_project", "remove_from_project", "toggle_visibility"):
             project = ProjectFactory(
@@ -267,8 +377,6 @@ class TestWorkspaceIntegration:
                     role=15,
                 )
 
-        # 4. Patch background tasks that successful admin paths enqueue, so
-        #    Celery is not required by the test environment.
         with patch(
             "plane.bgtasks.project_add_user_email_task.project_add_user_email.delay"
         ), patch(
@@ -286,18 +394,14 @@ class TestWorkspaceIntegration:
                 project=project,
             )
 
-        # 5. Assert against the expected status from the matrix
         assert response.status_code == expected_status, (
             f"role={role}, action={action}: expected {expected_status}, "
             f"got {response.status_code} (body={getattr(response, 'data', None)!r})"
         )
 
     def _dispatch_matrix_action(self, action, session_client, workspace, second_user, project):
-        """PI-11 dispatcher — maps an action name to its URL + HTTP verb + body."""
+        """[PI/11] dispatcher — maps an action name to its URL + HTTP verb + body."""
         if action == "invite":
-            # v1 endpoint; force_authenticate on session_client bypasses
-            # APIKeyAuthentication so the permission class still runs against
-            # the authenticated user.
             url = f"/api/v1/workspaces/{workspace.slug}/invitations/"
             return session_client.post(
                 url,
@@ -347,39 +451,64 @@ class TestWorkspaceIntegration:
 
         raise ValueError(f"Unknown PI-11 action: {action}")
 
+    # ------------------------------------------------------------------
+    # PI-12 — POST /api/workspaces/{slug}/members/leave/ as the only Admin
+    # ------------------------------------------------------------------
     @pytest.mark.django_db
-    def test_leave_workspace_as_last_admin_returns_400(self, session_client, workspace, create_user):
-        """PI-12: POST /api/workspaces/{slug}/members/leave/ as the only Admin returns 400.
-
-        Guard rail enforced in `WorkSpaceMemberViewSet.leave`
-        (apps/api/plane/app/views/workspace/member.py:159-205): when the
-        leaving member has role=20 and is the only active admin, the endpoint
-        returns 400 with an error message that includes "only admin".
-        The membership row must remain active in the DB afterwards.
-        """
-        # Precondition: create_user is the only active Admin (role=20)
-        admin_member = WorkspaceMember.objects.get(workspace=workspace, member=create_user)
-        assert admin_member.role == 20
-        assert admin_member.is_active is True
-        assert (
-            WorkspaceMember.objects.filter(
-                workspace=workspace, role=20, is_active=True
-            ).count()
-            == 1
-        )
-
+    def test_leave_workspace_as_last_admin_returns_400(
+        self, session_client, workspace, precondition_only_active_admin
+    ):
+        """[PI/12] The leave endpoint refuses with 400 when the only Admin tries to leave."""
         url = f"/api/workspaces/{workspace.slug}/members/leave/"
 
         response = session_client.post(url)
 
-        # The endpoint must refuse with 400 and a descriptive error message
         assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+    @pytest.mark.django_db
+    def test_leave_workspace_as_last_admin_error_contains_only_admin(
+        self, session_client, workspace, precondition_only_active_admin
+    ):
+        """[PI/12] The 400 error message describes the only-admin constraint."""
+        url = f"/api/workspaces/{workspace.slug}/members/leave/"
+
+        response = session_client.post(url)
+
         assert "only admin" in response.data["error"]
 
-        # The admin remains active in the workspace (the leave was rejected)
-        admin_member.refresh_from_db()
+    @pytest.mark.django_db
+    def test_leave_workspace_as_last_admin_keeps_is_active(
+        self, session_client, workspace, precondition_only_active_admin
+    ):
+        """[PI/12] The admin's `is_active` flag is preserved after the rejected leave."""
+        url = f"/api/workspaces/{workspace.slug}/members/leave/"
+
+        session_client.post(url)
+
+        admin_member = WorkspaceMember.objects.get(workspace=workspace, member=precondition_only_active_admin.member)
         assert admin_member.is_active is True
+
+    @pytest.mark.django_db
+    def test_leave_workspace_as_last_admin_keeps_role(
+        self, session_client, workspace, precondition_only_active_admin
+    ):
+        """[PI/12] The admin's `role` is preserved (still 20) after the rejected leave."""
+        url = f"/api/workspaces/{workspace.slug}/members/leave/"
+
+        session_client.post(url)
+
+        admin_member = WorkspaceMember.objects.get(workspace=workspace, member=precondition_only_active_admin.member)
         assert admin_member.role == 20
+
+    @pytest.mark.django_db
+    def test_leave_workspace_as_last_admin_keeps_membership(
+        self, session_client, workspace, create_user, precondition_only_active_admin
+    ):
+        """[PI/12] The admin's active membership row still exists after the rejected leave."""
+        url = f"/api/workspaces/{workspace.slug}/members/leave/"
+
+        session_client.post(url)
+
         assert WorkspaceMember.objects.filter(
             workspace=workspace, member=create_user, role=20, is_active=True
         ).exists()
