@@ -1,28 +1,43 @@
-import { defineConfig } from "@playwright/test";
-import { config } from "dotenv";
-import { fileURLToPath } from "url";
-import path from "path";
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-config({ path: path.resolve(__dirname, ".env.e2e") });
+import { defineConfig, devices } from "@playwright/test";
 
 export default defineConfig({
   testDir: "./tests/e2e",
-  testMatch: "**/*.spec.ts",
-  timeout: 30000,
+  testMatch: /.*\.spec\.ts$/,
+  fullyParallel: true,
+  forbidOnly: !!process.env.CI,
   retries: 3,
+  workers: process.env.CI ? 1 : 3,
+  reporter: [["html", { open: "never" }], ["list"]],
+  timeout: 30000,
   use: {
-    baseURL: "https://makeplane.r-odio.com",
-    headless: true,
-    screenshot: "only-on-failure",
+    baseURL: process.env.PLAYWRIGHT_BASE_URL ?? "https://makeplane.r-odio.com",
     trace: "on-first-retry",
+    screenshot: "only-on-failure",
+    actionTimeout: 15_000,
+    navigationTimeout: 30_000,
   },
   projects: [
     {
       name: "chromium",
-      use: { browserName: "chromium" },
+      use: { ...devices["Desktop Chrome"] },
     },
+    // {
+    //   name: "firefox",
+    //   use: { ...devices["Desktop Firefox"] },
+    // },
+    // {
+    //   name: "webkit",
+    //   use: { ...devices["Desktop Safari"] },
+    // },
   ],
+  webServer: process.env.PLAYWRIGHT_SKIP_WEBSERVER
+    ? undefined
+    : [
+        {
+          command: "pnpm --filter=web dev",
+          port: 3000,
+          reuseExistingServer: !process.env.CI,
+          timeout: 120_000,
+        },
+      ],
 });

@@ -9,6 +9,7 @@
       "@/plane-web/*": ["./ce/*"],
       "package.json": ["./package.json"]
     },
+    "lib": ["ES2023"],
     "strictNullChecks": true,
     "exactOptionalPropertyTypes": false,
     "noUnusedParameters": false,

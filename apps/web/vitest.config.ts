@@ -6,7 +6,12 @@ export default defineConfig({
     environment: "jsdom",
     globals: true,
     setupFiles: ["./vitest.setup.ts"],
-    include: ["tests/**/*.test.ts", "tests/**/*.test.tsx", "tests/**/*.spec.ts", "tests/**/*.spec.tsx"],
+    include: [
+      "tests/unit/**/*.test.ts",
+      "tests/unit/**/*.test.tsx",
+      "tests/unit/**/*.spec.ts",
+      "tests/unit/**/*.spec.tsx",
+    ],
     coverage: {
       provider: "v8",
       reporter: ["text", "json", "html"],
@@ -17,6 +22,10 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./core"),
+      "@plane/constants": path.resolve(__dirname, "../../packages/constants/src/index.ts"),
+      "@plane/types": path.resolve(__dirname, "../../packages/types/src/index.ts"),
+      "@plane/utils": path.resolve(__dirname, "../../packages/utils/src/index.ts"),
+      "@plane/services": path.resolve(__dirname, "../../packages/services/src/index.ts"),
     },
   },
 });
