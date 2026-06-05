@@ -1,0 +1,106 @@
+"""
+PI-21: POST attachment excediendo FILE_SIZE_LIMIT
+Tecnica: Analisis de valores limite
+HU-22: Adjuntar archivos a un work item
+
+HALLAZGO: Plane usa pre-signed URLs de S3 para todos los uploads.
+Django nunca recibe el archivo directamente. El FILE_SIZE_LIMIT no genera un 400;
+el endpoint trunca el size al limite y devuelve una URL pre-firmada con ese cap.
+La validacion real del tamaño ocurre en S3, no en Django (cubierta por PU-23).
+"""
+import pytest
+from unittest.mock import patch, MagicMock
+
+from plane.tests.factories import IssueFactory
+
+FILE_SIZE_LIMIT = 5_242_880  # 5 MB
+
+
+def mock_s3_storage():
+    mock = MagicMock()
+    mock.generate_presigned_post.return_value = {"url": "https://s3.fake/upload", "fields": {}}
+    return mock
+
+
+@pytest.mark.qa
+@pytest.mark.daniel
+@pytest.mark.django_db
+class TestPI21SizeCappedNotRejected:
+    """PI-21: Enviar size=15MB es silenciosamente limitado al FILE_SIZE_LIMIT — no retorna 400."""
+
+    @pytest.fixture(autouse=True)
+    def setup(self, auth_client, workspace, project, default_state):
+        issue = IssueFactory(project=project, state=default_state)
+        url = f"/api/workspaces/{workspace.slug}/assets/v2/workspaces/{workspace.slug}/"
+        with patch("plane.app.views.asset.v2.S3Storage", return_value=mock_s3_storage()):
+            self.response = auth_client.post(
+                url,
+                data={
+                    "name": "big_file.jpg",
+                    "type": "image/jpeg",
+                    "size": FILE_SIZE_LIMIT * 3,
+                    "entity_type": "ISSUE_ATTACHMENT",
+                    "entity_identifier": str(issue.id),
+                },
+                format="json",
+            )
+
+    def test_returns_200(self):
+        assert self.response.status_code == 200
+
+    def test_response_contains_upload_data(self):
+        assert "upload_data" in self.response.data
+
+    def test_response_contains_asset_id(self):
+        assert "asset_id" in self.response.data
+
+
+@pytest.mark.qa
+@pytest.mark.daniel
+@pytest.mark.django_db
+class TestPI21InvalidFileType:
+    """Tipo de archivo no permitido retorna 400."""
+
+    @pytest.fixture(autouse=True)
+    def setup(self, auth_client, workspace, project, default_state):
+        issue = IssueFactory(project=project, state=default_state)
+        url = f"/api/workspaces/{workspace.slug}/assets/v2/workspaces/{workspace.slug}/"
+        self.response = auth_client.post(
+            url,
+            data={
+                "name": "malware.exe",
+                "type": "application/octet-stream",
+                "size": 1_000_000,
+                "entity_type": "ISSUE_ATTACHMENT",
+                "entity_identifier": str(issue.id),
+            },
+            format="json",
+        )
+
+    def test_returns_400(self):
+        assert self.response.status_code == 400
+
+    def test_response_contains_error(self):
+        assert "error" in self.response.data
+
+
+@pytest.mark.qa
+@pytest.mark.daniel
+@pytest.mark.django_db
+class TestPI21InvalidEntityType:
+    """entity_type invalido retorna 400 sin necesidad de S3."""
+
+    @pytest.fixture(autouse=True)
+    def setup(self, auth_client, workspace):
+        url = f"/api/workspaces/{workspace.slug}/assets/v2/workspaces/{workspace.slug}/"
+        self.response = auth_client.post(
+            url,
+            data={"name": "file.jpg", "type": "image/jpeg", "size": 1_000_000, "entity_type": "INVALID_TYPE"},
+            format="json",
+        )
+
+    def test_returns_400(self):
+        assert self.response.status_code == 400
+
+    def test_response_contains_error(self):
+        assert "error" in self.response.data

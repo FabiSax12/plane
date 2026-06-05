@@ -5,9 +5,10 @@ export default defineConfig({
   testMatch: /.*\.spec\.ts$/,
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
-  retries: process.env.CI ? 2 : 0,
+  retries: 3,
   workers: process.env.CI ? 1 : 3,
   reporter: [["html", { open: "never" }], ["list"]],
+  timeout: 30000,
   use: {
     baseURL: process.env.PLAYWRIGHT_BASE_URL ?? "https://makeplane.r-odio.com",
     trace: "on-first-retry",

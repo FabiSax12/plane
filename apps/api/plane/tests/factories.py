@@ -7,6 +7,9 @@ from uuid import uuid4
 from django.utils import timezone
 
 from plane.db.models import User, Workspace, WorkspaceMember, Project, ProjectMember
+from plane.db.models.state import State
+from plane.db.models.issue import Issue
+from plane.db.models.cycle import Cycle
 
 
 class UserFactory(factory.django.DjangoModelFactory):
@@ -81,5 +84,60 @@ class ProjectMemberFactory(factory.django.DjangoModelFactory):
     project = factory.SubFactory(ProjectFactory)
     member = factory.SubFactory(UserFactory)
     role = 20  # Admin role by default
+    created_at = factory.LazyFunction(timezone.now)
+    updated_at = factory.LazyFunction(timezone.now)
+
+
+# --- Factories added by Daniel Salas ---
+
+
+class StateFactory(factory.django.DjangoModelFactory):
+    """Factory for creating State instances"""
+
+    class Meta:
+        model = State
+
+    id = factory.LazyFunction(uuid4)
+    name = factory.Sequence(lambda n: f"State {n}")
+    color = "#60646C"
+    group = "backlog"
+    project = factory.SubFactory(ProjectFactory)
+    created_by = factory.SelfAttribute("project.created_by")
+    updated_by = factory.SelfAttribute("project.created_by")
+    created_at = factory.LazyFunction(timezone.now)
+    updated_at = factory.LazyFunction(timezone.now)
+
+
+class IssueFactory(factory.django.DjangoModelFactory):
+    """Factory for creating Issue instances"""
+
+    class Meta:
+        model = Issue
+
+    id = factory.LazyFunction(uuid4)
+    name = factory.Sequence(lambda n: f"Issue {n}")
+    project = factory.SubFactory(ProjectFactory)
+    state = factory.SubFactory(StateFactory, project=factory.SelfAttribute("..project"))
+    priority = "none"
+    created_by = factory.SelfAttribute("project.created_by")
+    updated_by = factory.SelfAttribute("project.created_by")
+    created_at = factory.LazyFunction(timezone.now)
+    updated_at = factory.LazyFunction(timezone.now)
+
+
+class CycleFactory(factory.django.DjangoModelFactory):
+    """Factory for creating Cycle instances"""
+
+    class Meta:
+        model = Cycle
+
+    id = factory.LazyFunction(uuid4)
+    name = factory.Sequence(lambda n: f"Cycle {n}")
+    project = factory.SubFactory(ProjectFactory)
+    owned_by = factory.SelfAttribute("project.created_by")
+    created_by = factory.SelfAttribute("project.created_by")
+    updated_by = factory.SelfAttribute("project.created_by")
+    start_date = None
+    end_date = None
     created_at = factory.LazyFunction(timezone.now)
     updated_at = factory.LazyFunction(timezone.now)
