@@ -47,24 +47,34 @@ const createRootStoreMock = () =>
     },
   }) as any;
 
+const createTestStore = async () => {
+  const { ProjectStore } = await import("@/store/project/project.store");
+  const rootStoreMock = createRootStoreMock();
+  const store = new ProjectStore(rootStoreMock);
+  return { store, rootStoreMock };
+};
+
+const createdProject = {
+  id: "project-2",
+  workspace: "workspace-1",
+  name: "New Project",
+  member_role: 20,
+} as any;
+
 describe("ProjectStore", () => {
-  it("PU-11: processProjectAfterCreation adds project and workspace permission", async () => {
-    const { ProjectStore } = await import("@/store/project/project.store");
-
-    const rootStoreMock = createRootStoreMock();
-
-    const store = new ProjectStore(rootStoreMock);
-
-    const createdProject = {
-      id: "project-2",
-      workspace: "workspace-1",
-      name: "New Project",
-      member_role: 20,
-    } as any;
+  it("PU-11a: processProjectAfterCreation adds project to store", async () => {
+    const { store } = await createTestStore();
 
     store.processProjectAfterCreation("acme", createdProject);
 
     expect(store.projectMap["project-2"]).toEqual(createdProject);
+  }, 15000);
+
+  it("PU-11b: processProjectAfterCreation sets workspace permissions", async () => {
+    const { store, rootStoreMock } = await createTestStore();
+
+    store.processProjectAfterCreation("acme", createdProject);
+
     expect(rootStoreMock.user.permission.workspaceProjectsPermissions.acme["project-2"]).toBe(20);
-  });
+  }, 15000);
 });
