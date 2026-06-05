@@ -9,6 +9,10 @@ const { updateWorkspaceMock } = vi.hoisted(() => ({
   updateWorkspaceMock: vi.fn(),
 }));
 
+vi.mock("@plane/services", () => ({
+  APITokenService: vi.fn(),
+}));
+
 vi.mock("@/services/workspace.service", () => ({
   WorkspaceService: class {
     updateWorkspace = updateWorkspaceMock;
