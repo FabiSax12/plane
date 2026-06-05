@@ -8,6 +8,8 @@ import { expect, test } from "@playwright/test";
 const EXISTING_EMAIL = process.env.E2E_EXISTING_USER_EMAIL ?? "qa-tester@itcr.ac.cr";
 
 test.describe("Sign-up", () => {
+  test.describe.configure({ retries: 0 }); // Se descubrió que este va a fallar siempre
+
   test(
     "PS-05: signup with duplicate email shows visible error in form",
     { tag: ["@e2e", "@signup", "@PS-05"] },
