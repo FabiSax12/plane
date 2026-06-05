@@ -39,8 +39,8 @@ class TestPI24TransferIncompleteIssues:
         state_backlog = StateFactory(project=project, group="backlog")
         state_started = StateFactory(project=project, group="started")
         state_completed = StateFactory(project=project, group="completed")
-        self.origin = CycleFactory(project=project, start_date=now - timedelta(days=10), end_date=now + timedelta(days=1))
-        self.destination = CycleFactory(project=project, start_date=now, end_date=now + timedelta(days=14))
+        self.origin = CycleFactory(project=project, owned_by=user, start_date=now - timedelta(days=10), end_date=now + timedelta(days=1))
+        self.destination = CycleFactory(project=project, owned_by=user, start_date=now, end_date=now + timedelta(days=14))
         self.issue_backlog = IssueFactory(project=project, state=state_backlog)
         self.issue_started = IssueFactory(project=project, state=state_started)
         self.issue_completed = IssueFactory(project=project, state=state_completed)
@@ -73,8 +73,8 @@ class TestPI24CompletedIssuesStayInOrigin:
         now = timezone.now()
         state_completed = StateFactory(project=project, group="completed")
         state_backlog = StateFactory(project=project, group="backlog")
-        self.origin = CycleFactory(project=project, start_date=now - timedelta(days=10), end_date=now + timedelta(days=1))
-        self.destination = CycleFactory(project=project, start_date=now, end_date=now + timedelta(days=14))
+        self.origin = CycleFactory(project=project, owned_by=user, start_date=now - timedelta(days=10), end_date=now + timedelta(days=1))
+        self.destination = CycleFactory(project=project, owned_by=user, start_date=now, end_date=now + timedelta(days=14))
         self.issue_completed = IssueFactory(project=project, state=state_completed)
         issue_backlog = IssueFactory(project=project, state=state_backlog)
         create_cycle_issue(self.origin, self.issue_completed, project, workspace.id, user)
@@ -99,8 +99,8 @@ class TestPI24ProgressSnapshot:
         now = timezone.now()
         state_backlog = StateFactory(project=project, group="backlog")
         state_completed = StateFactory(project=project, group="completed")
-        self.origin = CycleFactory(project=project, start_date=now - timedelta(days=10), end_date=now + timedelta(days=1))
-        destination = CycleFactory(project=project, start_date=now, end_date=now + timedelta(days=14))
+        self.origin = CycleFactory(project=project, owned_by=user, start_date=now - timedelta(days=10), end_date=now + timedelta(days=1))
+        destination = CycleFactory(project=project, owned_by=user, start_date=now, end_date=now + timedelta(days=14))
         create_cycle_issue(self.origin, IssueFactory(project=project, state=state_backlog), project, workspace.id, user)
         create_cycle_issue(self.origin, IssueFactory(project=project, state=state_completed), project, workspace.id, user)
         url = f"/api/workspaces/{workspace.slug}/projects/{project.id}/cycles/{self.origin.id}/transfer-issues/"
@@ -124,9 +124,9 @@ class TestPI24ProgressSnapshot:
 class TestPI24MissingNewCycleId:
     """POST sin new_cycle_id retorna 400."""
 
-    def test_missing_new_cycle_id_returns_400(self, auth_client, workspace, project):
+    def test_missing_new_cycle_id_returns_400(self, auth_client, workspace, project, user):
         now = timezone.now()
-        origin = CycleFactory(project=project, start_date=now - timedelta(days=5), end_date=now + timedelta(days=1))
+        origin = CycleFactory(project=project, owned_by=user, start_date=now - timedelta(days=5), end_date=now + timedelta(days=1))
         url = f"/api/workspaces/{workspace.slug}/projects/{project.id}/cycles/{origin.id}/transfer-issues/"
         response = auth_client.post(url, data={}, format="json")
         assert response.status_code == 400

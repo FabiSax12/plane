@@ -49,10 +49,12 @@ class TestPI21SizeCappedNotRejected:
         assert self.response.status_code == 200
 
     def test_response_contains_upload_data(self):
-        assert "upload_data" in self.response.data
+        data = self.response.json() if hasattr(self.response, 'json') else self.response.data
+        assert "upload_data" in data
 
     def test_response_contains_asset_id(self):
-        assert "asset_id" in self.response.data
+        data = self.response.json() if hasattr(self.response, 'json') else self.response.data
+        assert "asset_id" in data
 
 
 @pytest.mark.qa
@@ -81,7 +83,8 @@ class TestPI21InvalidFileType:
         assert self.response.status_code == 400
 
     def test_response_contains_error(self):
-        assert "error" in self.response.data
+        data = self.response.json() if hasattr(self.response, 'json') else self.response.data
+        assert "error" in data
 
 
 @pytest.mark.qa
@@ -103,4 +106,5 @@ class TestPI21InvalidEntityType:
         assert self.response.status_code == 400
 
     def test_response_contains_error(self):
-        assert "error" in self.response.data
+        data = self.response.json() if hasattr(self.response, 'json') else self.response.data
+        assert "error" in data

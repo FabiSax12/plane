@@ -104,9 +104,9 @@ class TestPI23LinkIssuesToCycle:
     """PI-23: POST cycle-issues con 3 issues los vincula al ciclo."""
 
     @pytest.fixture(autouse=True)
-    def setup(self, auth_client, workspace, project, default_state):
+    def setup(self, auth_client, workspace, project, default_state, user):
         now = timezone.now()
-        self.cycle = CycleFactory(project=project, start_date=now, end_date=now + timedelta(days=14))
+        self.cycle = CycleFactory(project=project, owned_by=user, start_date=now, end_date=now + timedelta(days=14))
         self.issue1 = IssueFactory(project=project, state=default_state)
         self.issue2 = IssueFactory(project=project, state=default_state)
         self.issue3 = IssueFactory(project=project, state=default_state)
@@ -137,9 +137,9 @@ class TestPI23LinkIssuesToCycle:
 class TestPI23EmptyIssues:
     """POST sin issues en el body retorna 400."""
 
-    def test_empty_issues_returns_400(self, auth_client, workspace, project):
+    def test_empty_issues_returns_400(self, auth_client, workspace, project, user):
         now = timezone.now()
-        cycle = CycleFactory(project=project, start_date=now, end_date=now + timedelta(days=14))
+        cycle = CycleFactory(project=project, owned_by=user, start_date=now, end_date=now + timedelta(days=14))
         url = f"/api/workspaces/{workspace.slug}/projects/{project.id}/cycles/{cycle.id}/cycle-issues/"
         response = auth_client.post(url, data={"issues": []}, format="json")
         assert response.status_code == 400
@@ -151,9 +151,9 @@ class TestPI23EmptyIssues:
 class TestPI23CompletedCycle:
     """No se pueden agregar issues a un ciclo ya completado."""
 
-    def test_completed_cycle_rejects_new_issues(self, auth_client, workspace, project, default_state):
+    def test_completed_cycle_rejects_new_issues(self, auth_client, workspace, project, default_state, user):
         past = timezone.now() - timedelta(days=5)
-        cycle = CycleFactory(project=project, start_date=past - timedelta(days=10), end_date=past)
+        cycle = CycleFactory(project=project, owned_by=user, start_date=past - timedelta(days=10), end_date=past)
         issue = IssueFactory(project=project, state=default_state)
         url = f"/api/workspaces/{workspace.slug}/projects/{project.id}/cycles/{cycle.id}/cycle-issues/"
         response = auth_client.post(url, data={"issues": [str(issue.id)]}, format="json")
