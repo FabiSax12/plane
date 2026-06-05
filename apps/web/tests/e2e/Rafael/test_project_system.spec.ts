@@ -22,6 +22,7 @@ const nextIdentifier = () => {
 /** Crea un proyecto nuevo y retorna su UUID extraído de la URL. */
 async function createProject(page: Parameters<typeof loginAs>[0], name: string, identifier: string) {
   await page.goto(`${BASE_URL}/`);
+  await page.getByLabel("Main sidebar").waitFor({ state: "visible", timeout: 30000 });
   await page.getByLabel("Main sidebar").getByRole("link", { name: "Projects" }).click();
   await page.getByRole("button", { name: "Add Project" }).waitFor({ state: "visible", timeout: 20000 });
   await page.getByRole("button", { name: "Add Project" }).click();

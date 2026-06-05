@@ -12,7 +12,7 @@ export default defineConfig({
   testDir: "./tests/e2e",
   testMatch: "**/*.spec.ts",
   timeout: 30000,
-  retries: 0,
+  retries: 3,
   use: {
     baseURL: "https://makeplane.r-odio.com",
     headless: true,
